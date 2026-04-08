@@ -1,0 +1,62 @@
+.app {
+  margin: 0 auto;
+  max-width: 1080px;
+  padding: 2rem;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 2rem;
+}
+
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.subtitle {
+  margin-top: -0.5rem;
+  color: #475569;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+}
+
+.card + .card,
+.kpi-grid + .card {
+  margin-top: 1rem;
+}
+
+.kpi-value {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.chart-wrap {
+  width: 100%;
+  height: 320px;
+}
+
+.warning-card {
+  background: #fffdf5;
+  border-color: #fde68a;
+}
+
+.error-card {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
