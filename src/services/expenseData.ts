@@ -1,10 +1,18 @@
 import Papa from "papaparse";
 import csvRaw from "../../expense_data.csv?raw";
-import type { ExpenseLoadResult, ExpenseTransaction } from "../types/expense";
+import type {
+  ExpenseLoadResult,
+  ExpenseTransaction,
+  MalformedExpenseRow,
+} from "../types/expense";
 
 const REQUIRED_COLUMNS = ["Date", "Description", "Category", "Amount", "Type"] as const;
 
 type CsvRow = Record<string, string | undefined>;
+type ParsedRowResult =
+  | { kind: "transaction"; value: ExpenseTransaction }
+  | { kind: "intentionally-skipped" }
+  | { kind: "malformed"; reason: string };
 
 function parseDate(value: string): Date | null {
   const parts = value.split("/");
@@ -32,7 +40,7 @@ function parseDate(value: string): Date | null {
   return date;
 }
 
-function parseTransaction(row: CsvRow): ExpenseTransaction | null {
+function parseTransaction(row: CsvRow): ParsedRowResult {
   const dateValue = (row.Date ?? "").trim();
   const description = (row.Description ?? "").trim();
   const category = (row.Category ?? "").trim();
@@ -40,7 +48,7 @@ function parseTransaction(row: CsvRow): ExpenseTransaction | null {
   const type = (row.Type ?? "").trim();
 
   if (!dateValue || !description || !category || !amountRaw || !type) {
-    return null;
+    return { kind: "malformed", reason: "Missing one or more required fields." };
   }
 
   // Exclude internal transfer rows to avoid counting non-expense money movement.
@@ -49,16 +57,27 @@ function parseTransaction(row: CsvRow): ExpenseTransaction | null {
     descriptionLower.includes("transfer to cc") ||
     descriptionLower.includes("transfer to sv")
   ) {
-    return null;
+    return { kind: "intentionally-skipped" };
   }
 
   const date = parseDate(dateValue);
   const amount = Number(amountRaw);
-  if (!date || Number.isNaN(amount) || amount < 0) {
-    return null;
+  if (!date) {
+    return { kind: "malformed", reason: "Date is not in a valid MM/DD/YYYY format." };
   }
 
-  return { date, description, category, amount, type };
+  if (Number.isNaN(amount)) {
+    return { kind: "malformed", reason: "Amount is not a valid number." };
+  }
+
+  if (amount < 0) {
+    return { kind: "malformed", reason: "Amount cannot be negative." };
+  }
+
+  return {
+    kind: "transaction",
+    value: { date, description, category, amount, type },
+  };
 }
 
 export function parseExpenseCsv(csvText: string): ExpenseLoadResult {
@@ -82,18 +101,38 @@ export function parseExpenseCsv(csvText: string): ExpenseLoadResult {
   }
 
   const transactions: ExpenseTransaction[] = [];
-  let skippedRows = 0;
+  const malformedRows: MalformedExpenseRow[] = [];
+  let intentionallySkippedRows = 0;
 
-  for (const row of parsed.data) {
-    const transaction = parseTransaction(row);
-    if (transaction) {
-      transactions.push(transaction);
-    } else {
-      skippedRows += 1;
+  for (const [index, row] of parsed.data.entries()) {
+    const parsedRow = parseTransaction(row);
+    if (parsedRow.kind === "transaction") {
+      transactions.push(parsedRow.value);
+      continue;
     }
+
+    if (parsedRow.kind === "intentionally-skipped") {
+      intentionallySkippedRows += 1;
+      continue;
+    }
+
+    malformedRows.push({
+      rowNumber: index + 2,
+      reason: parsedRow.reason,
+      date: (row.Date ?? "").trim(),
+      description: (row.Description ?? "").trim(),
+      category: (row.Category ?? "").trim(),
+      amount: (row.Amount ?? "").trim(),
+      type: (row.Type ?? "").trim(),
+    });
   }
 
-  return { transactions, skippedRows };
+  return {
+    transactions,
+    malformedRows,
+    malformedRowsCount: malformedRows.length,
+    intentionallySkippedRows,
+  };
 }
 
 export async function loadExpenseData(): Promise<ExpenseLoadResult> {

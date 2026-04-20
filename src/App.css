@@ -51,9 +51,113 @@ h2 {
   height: 320px;
 }
 
+.chart-hint {
+  margin: 0.35rem 0 0;
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.drilldown-section {
+  margin-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.9rem;
+}
+
+.drilldown-section h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+}
+
+.transactions-grid-wrap {
+  overflow-x: auto;
+}
+
+.transactions-grid-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.transactions-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.transactions-grid th,
+.transactions-grid td {
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.45rem 0.4rem;
+  white-space: nowrap;
+}
+
+.transactions-grid th {
+  color: #334155;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.summary-row td {
+  background: #ffffff;
+}
+
+.expand-arrow-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #1d4ed8;
+}
+
+.expand-arrow-btn:hover {
+  color: #1e40af;
+}
+
+.detail-row td {
+  background: #f8fafc;
+}
+
+.detail-meta {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
 .warning-card {
   background: #fffdf5;
   border-color: #fde68a;
+}
+
+.warning-card p {
+  margin: 0.35rem 0;
+}
+
+.malformed-rows-section {
+  margin-top: 1rem;
+  border-top: 1px solid #f5d56a;
+  padding-top: 0.75rem;
+}
+
+.malformed-rows-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.malformed-rows-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.malformed-row {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
 }
 
 .error-card {

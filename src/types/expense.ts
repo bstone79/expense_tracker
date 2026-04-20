@@ -8,7 +8,19 @@ export interface ExpenseTransaction {
   type: TransactionType;
 }
 
+export interface MalformedExpenseRow {
+  rowNumber: number;
+  reason: string;
+  date: string;
+  description: string;
+  category: string;
+  amount: string;
+  type: string;
+}
+
 export interface ExpenseLoadResult {
   transactions: ExpenseTransaction[];
-  skippedRows: number;
+  malformedRows: MalformedExpenseRow[];
+  malformedRowsCount: number;
+  intentionallySkippedRows: number;
 }
