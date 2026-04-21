@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ExpenseTransaction } from "../types/expense";
-import { getDashboardSummary, getMonthlyTrend } from "./expenseAggregations";
+import {
+  getDashboardSummary,
+  getMonthlySpendByType,
+  getMonthlyTrend,
+  getSpendByCategory,
+} from "./expenseAggregations";
 
 const sampleRows: ExpenseTransaction[] = [
   {
@@ -39,6 +44,22 @@ describe("expenseAggregations", () => {
     expect(trend).toEqual([
       { month: "2026-01", total: 50.5 },
       { month: "2026-02", total: 10 },
+    ]);
+  });
+
+  it("groups total spend by category in descending amount", () => {
+    const spendByCategory = getSpendByCategory(sampleRows);
+    expect(spendByCategory).toEqual([
+      { category: "Groceries", total: 30.5 },
+      { category: "Dining", total: 30 },
+    ]);
+  });
+
+  it("groups monthly spend split by credit card and bank types", () => {
+    const monthlyByType = getMonthlySpendByType(sampleRows);
+    expect(monthlyByType).toEqual([
+      { month: "2026-01", creditCardTotal: 20, bankTotal: 30.5 },
+      { month: "2026-02", creditCardTotal: 10, bankTotal: 0 },
     ]);
   });
 });

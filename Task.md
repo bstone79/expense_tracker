@@ -1,29 +1,75 @@
-Suggested Task Breakdown
-Tasks are marked to distinguish new work from enhancements to existing code.
+Project Task Tracker
 
-Locked implementation decisions (from PRD):
+## Snapshot
+- Current Phase: Phase 2 - Filters
+- Current Task (one only): Build global filter state (date range, category, payment type)
+- Progress: Phase 1 complete (6 of 6 tasks)
+- Next Task: Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
+- Blockers: None
+
+## Locked Decisions
 - CSV path for MVP: `public/expense_data.csv`
-- Claude API key location: backend env vars only
-- PDF parse failure behavior: show error and require CSV upload
+- Gemini API key location: backend environment variables only
+- PDF extraction failure: show error and require CSV upload
 - Upload preview: allow category edits before confirm
-- Duplicate handling default: exclude detected duplicates by default
+- Duplicate default behavior: exclude detected duplicates by default
 
-Execution workflow:
-- Update this task file and present next task in chat before coding
-- Begin coding only after explicit user approval
-- After each coding task, provide manual testing steps for user validation
+## Workflow Rules
+- Update this file before each coding task
+- Begin coding only after explicit approval in chat
+- After each coding task, provide manual testing steps
+- Keep only one task marked in progress at a time
 
-Phase 1 — Data & Architecture (Mostly Done)
+## Done
 
-✅ Set up PapaParse CSV loading — Complete in expenseData.ts
-✅ Type definitions and data model — Complete in expense.ts
-✅ Aggregation utilities — Complete in expenseAggregations.ts
-🔲 Add getSpendByCategory() aggregation to expenseAggregations.ts
-🔲 Add getMonthlySpendByType() aggregation for Credit Card vs. Bank chart
-🔲 Migrate CSV from build-time import to runtime fetch — use `public/expense_data.csv` and replace ?raw import with a fetch() call so the app reads fresh data without rebuilding (prerequisite for the upload feature)
+### Phase 1 - Data & Architecture (Completed)
+- [x] Set up PapaParse CSV loading (`expenseData.ts`)
+- [x] Define core types/data model (`expense.ts`)
+- [x] Build baseline aggregation helpers (`expenseAggregations.ts`)
+- [x] Migrate CSV from build-time import to runtime fetch from `public/expense_data.csv`
+- [x] Add `getSpendByCategory()` aggregation helper
+- [x] Add `getMonthlySpendByType()` aggregation helper
 
-Phase 2 — Filters 7. 🔲 Build global filter state (date range, category, type) — React context or lifted state 8. 🔲 Build Filter Bar component (date pickers, category multi-select, type toggle, reset button) 9. 🔲 Wire filter state into all aggregation calls
-Phase 3 — Dashboard Enhancements 10. 🔲 Update KPI tiles: replace "Category Count" with "Top Category", add "Avg. Monthly Spend" 11. 🔲 Wire KPI tiles to filter state 12. ✅ Monthly line chart — built; 🔲 wire to filter state and fix X-axis label formatting 13. 🔲 Build Category breakdown pie/donut chart 14. 🔲 Build Credit Card vs. Bank stacked bar chart 15. 🔲 Improve drilldown UX: add visible close button, category column on group rows
-Phase 4 — Transactions View 16. 🔲 Build sortable, paginated transaction table (separate from drilldown) 17. 🔲 Add free-text search by description 18. 🔲 Wire table to global filter state
-Phase 5 — Upload Feature 19. 🔲 Set up local Express server alongside Vite with POST /api/append-transactions endpoint 20. 🔲 Build file upload UI (drag-and-drop + file picker) in new Upload view 21. 🔲 Implement PDF text extraction (pdfjs-dist) 22. 🔲 Implement Claude API integration for transaction parsing and categorization 23. 🔲 Build transaction preview table with duplicate highlighting 24. 🔲 Wire confirmation flow to backend endpoint 25. 🔲 Refresh app data after successful upload (re-fetch CSV)
-Phase 6 — Polish 26. 🔲 Error handling: API errors, malformed statements, upload failures 27. 🔲 Category color coding and badge styling (consistent palette across all charts and tables) 28. 🔲 End-to-end test with a real credit card and bank statement
+## In Progress
+- [ ] Build global filter state (date range, category, payment type)
+
+## Next
+- [ ] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
+
+## Backlog by Phase
+
+### Phase 2 - Filters
+- [ ] Build global filter state (date range, category, type)
+- [ ] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
+- [ ] Wire filter state into all aggregation calls
+
+### Phase 3 - Dashboard Enhancements
+- [ ] Replace "Category Count" KPI with "Top Category"
+- [ ] Add "Avg. Monthly Spend" KPI
+- [ ] Wire KPI tiles to filter state
+- [ ] Wire monthly line chart to filter state and shorten X-axis labels
+- [ ] Build category breakdown pie/donut chart
+- [ ] Build credit-card-vs-bank monthly chart
+- [ ] Improve drilldown UX (visible close action, category at summary level)
+
+### Phase 4 - Transactions View
+- [ ] Build sortable, paginated transaction table
+- [ ] Add free-text description search
+- [ ] Wire table to global filter state
+
+### Phase 5 - Upload Feature
+- [ ] Set up local Express server with `POST /api/append-transactions`
+- [ ] Build Upload view (drag/drop + file picker)
+- [ ] Implement PDF text extraction (`pdfjs-dist`)
+- [ ] Implement Gemini parsing + categorization integration
+- [ ] Build preview table with duplicate highlighting
+- [ ] Wire confirm-and-append flow to backend
+- [ ] Refresh app data after successful upload
+
+### Phase 6 - Polish
+- [ ] Improve error handling (API errors, malformed statements, upload failures)
+- [ ] Standardize category colors/badges across views
+- [ ] Run end-to-end test with real bank and credit card statements
+
+## Blockers / Decisions
+- None currently
