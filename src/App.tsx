@@ -12,6 +12,7 @@ import "./App.css";
 import { loadExpenseData } from "./services/expenseData";
 import type { ExpenseTransaction, MalformedExpenseRow } from "./types/expense";
 import {
+  getAverageMonthlySpend,
   formatCurrency,
   getDashboardSummary,
   getMonthlyTrend,
@@ -189,6 +190,7 @@ function App() {
 
   const summary = useMemo(() => getDashboardSummary(filteredTransactions), [filteredTransactions]);
   const topCategory = useMemo(() => getTopCategory(filteredTransactions), [filteredTransactions]);
+  const avgMonthlySpend = useMemo(() => getAverageMonthlySpend(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
   const transactionsByMonth = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
@@ -380,6 +382,10 @@ function App() {
         <article className="card">
           <h2>Top Category</h2>
           <p className="kpi-value">{topCategory ? topCategory.category : "N/A"}</p>
+        </article>
+        <article className="card">
+          <h2>Avg. Monthly Spend</h2>
+          <p className="kpi-value">{formatCurrency(avgMonthlySpend)}</p>
         </article>
       </section>
 

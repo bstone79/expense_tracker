@@ -115,3 +115,17 @@ export function getTopCategory(transactions: ExpenseTransaction[]): TopCategoryR
     total: top.total,
   };
 }
+
+export function getAverageMonthlySpend(transactions: ExpenseTransaction[]): number {
+  if (transactions.length === 0) {
+    return 0;
+  }
+
+  const monthlyTrend = getMonthlyTrend(transactions);
+  if (monthlyTrend.length === 0) {
+    return 0;
+  }
+
+  const monthlyTotal = monthlyTrend.reduce((sum, row) => sum + row.total, 0);
+  return Number((monthlyTotal / monthlyTrend.length).toFixed(2));
+}

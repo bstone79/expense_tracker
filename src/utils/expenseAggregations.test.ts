@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ExpenseTransaction } from "../types/expense";
 import {
+  getAverageMonthlySpend,
   getDashboardSummary,
   getMonthlySpendByType,
   getMonthlyTrend,
@@ -92,5 +93,33 @@ describe("expenseAggregations", () => {
 
   it("returns null for top category when no transactions are provided", () => {
     expect(getTopCategory([])).toBeNull();
+  });
+
+  it("calculates average monthly spend from grouped month totals", () => {
+    expect(getAverageMonthlySpend(sampleRows)).toBe(30.25);
+  });
+
+  it("returns zero monthly average when there are no transactions", () => {
+    expect(getAverageMonthlySpend([])).toBe(0);
+  });
+
+  it("calculates monthly average using months that contain transactions", () => {
+    const sparseRows: ExpenseTransaction[] = [
+      {
+        date: new Date(2026, 0, 1),
+        description: "Jan Row",
+        category: "Dining",
+        amount: 30,
+        type: "Credit Card",
+      },
+      {
+        date: new Date(2026, 3, 1),
+        description: "Apr Row",
+        category: "Groceries",
+        amount: 90,
+        type: "Bank",
+      },
+    ];
+    expect(getAverageMonthlySpend(sparseRows)).toBe(60);
   });
 });
