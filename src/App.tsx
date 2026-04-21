@@ -17,6 +17,8 @@ import {
   getMonthlyTrend,
 } from "./utils/expenseAggregations";
 
+type TypeFilter = "All" | "Credit Card" | "Bank";
+
 function formatTooltipAmount(
   value: number | string | ReadonlyArray<number | string> | undefined,
 ): string {
@@ -56,6 +58,10 @@ function normalizeDescription(value: string): string {
 
 function App() {
   const [transactions, setTransactions] = useState<ExpenseTransaction[]>([]);
+  const [startDateFilter, setStartDateFilter] = useState<Date | null>(null);
+  const [endDateFilter, setEndDateFilter] = useState<Date | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [typeFilter] = useState<TypeFilter>("All");
   const [malformedRows, setMalformedRows] = useState<MalformedExpenseRow[]>([]);
   const [malformedRowsCount, setMalformedRowsCount] = useState(0);
   const [intentionallySkippedRows, setIntentionallySkippedRows] = useState(0);
@@ -96,11 +102,67 @@ function App() {
     };
   }, []);
 
-  const summary = useMemo(() => getDashboardSummary(transactions), [transactions]);
-  const monthlyTrend = useMemo(() => getMonthlyTrend(transactions), [transactions]);
+  const allCategories = useMemo(
+    () => Array.from(new Set(transactions.map((row) => row.category))).sort((a, b) => a.localeCompare(b, "en-US")),
+    [transactions],
+  );
+  const dateRange = useMemo(() => {
+    if (transactions.length === 0) {
+      return { minDate: null, maxDate: null };
+    }
+    let minDate = transactions[0].date;
+    let maxDate = transactions[0].date;
+    for (const transaction of transactions) {
+      if (transaction.date < minDate) {
+        minDate = transaction.date;
+      }
+      if (transaction.date > maxDate) {
+        maxDate = transaction.date;
+      }
+    }
+    return { minDate, maxDate };
+  }, [transactions]);
+
+  useEffect(() => {
+    if (transactions.length === 0) {
+      return;
+    }
+    setStartDateFilter((current) => current ?? dateRange.minDate);
+    setEndDateFilter((current) => current ?? dateRange.maxDate);
+    setSelectedCategories((current) => {
+      if (current.length === 0) {
+        return allCategories;
+      }
+      const available = new Set(allCategories);
+      const retained = current.filter((category) => available.has(category));
+      return retained.length > 0 ? retained : allCategories;
+    });
+  }, [allCategories, dateRange.maxDate, dateRange.minDate, transactions.length]);
+
+  const filteredTransactions = useMemo(() => {
+    const selected = new Set(selectedCategories);
+    return transactions.filter((transaction) => {
+      if (startDateFilter && transaction.date < startDateFilter) {
+        return false;
+      }
+      if (endDateFilter && transaction.date > endDateFilter) {
+        return false;
+      }
+      if (selected.size > 0 && !selected.has(transaction.category)) {
+        return false;
+      }
+      if (typeFilter !== "All" && transaction.type !== typeFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [endDateFilter, selectedCategories, startDateFilter, transactions, typeFilter]);
+
+  const summary = useMemo(() => getDashboardSummary(filteredTransactions), [filteredTransactions]);
+  const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
   const transactionsByMonth = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
-    for (const transaction of transactions) {
+    for (const transaction of filteredTransactions) {
       const year = transaction.date.getFullYear();
       const month = transaction.date.getMonth() + 1;
       const key = `${year}-${String(month).padStart(2, "0")}`;
@@ -117,7 +179,7 @@ function App() {
     }
 
     return grouped;
-  }, [transactions]);
+  }, [filteredTransactions]);
   const selectedMonthTransactions = selectedMonth ? (transactionsByMonth.get(selectedMonth) ?? []) : [];
   const groupedDrilldownRows = useMemo<DescriptionGroup[]>(() => {
     const grouped = new Map<string, DescriptionGroup>();
@@ -146,6 +208,13 @@ function App() {
       }))
       .sort((a, b) => a.description.localeCompare(b.description, "en-US"));
   }, [selectedMonthTransactions]);
+
+  useEffect(() => {
+    if (selectedMonth && !transactionsByMonth.has(selectedMonth)) {
+      setSelectedMonth(null);
+      setExpandedGroupKeys([]);
+    }
+  }, [selectedMonth, transactionsByMonth]);
 
   function handleMonthClick(monthKey: string): void {
     setExpandedGroupKeys([]);
