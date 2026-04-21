@@ -12,11 +12,9 @@ import "./App.css";
 import { loadExpenseData } from "./services/expenseData";
 import type { ExpenseTransaction, MalformedExpenseRow } from "./types/expense";
 import {
-  getAverageMonthlySpend,
   formatCurrency,
-  getDashboardSummary,
+  getKpiSnapshot,
   getMonthlyTrend,
-  getTopCategory,
 } from "./utils/expenseAggregations";
 
 type TypeFilter = "All" | "Credit Card" | "Bank";
@@ -188,9 +186,7 @@ function App() {
     });
   }, [endDateFilter, hasInvalidDateRange, selectedCategories, startDateFilter, transactions, typeFilter]);
 
-  const summary = useMemo(() => getDashboardSummary(filteredTransactions), [filteredTransactions]);
-  const topCategory = useMemo(() => getTopCategory(filteredTransactions), [filteredTransactions]);
-  const avgMonthlySpend = useMemo(() => getAverageMonthlySpend(filteredTransactions), [filteredTransactions]);
+  const kpis = useMemo(() => getKpiSnapshot(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
   const transactionsByMonth = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
@@ -373,19 +369,19 @@ function App() {
       <section className="kpi-grid">
         <article className="card">
           <h2>Total Spend</h2>
-          <p className="kpi-value">{formatCurrency(summary.totalSpend)}</p>
+          <p className="kpi-value">{formatCurrency(kpis.totalSpend)}</p>
         </article>
         <article className="card">
           <h2>Transactions</h2>
-          <p className="kpi-value">{summary.transactionCount.toLocaleString("en-US")}</p>
+          <p className="kpi-value">{kpis.transactionCount.toLocaleString("en-US")}</p>
         </article>
         <article className="card">
           <h2>Top Category</h2>
-          <p className="kpi-value">{topCategory ? topCategory.category : "N/A"}</p>
+          <p className="kpi-value">{kpis.topCategory ?? "N/A"}</p>
         </article>
         <article className="card">
           <h2>Avg. Monthly Spend</h2>
-          <p className="kpi-value">{formatCurrency(avgMonthlySpend)}</p>
+          <p className="kpi-value">{formatCurrency(kpis.avgMonthlySpend)}</p>
         </article>
       </section>
 

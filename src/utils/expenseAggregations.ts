@@ -27,6 +27,13 @@ export interface TopCategoryResult {
   total: number;
 }
 
+export interface KpiSnapshot {
+  totalSpend: number;
+  transactionCount: number;
+  topCategory: string | null;
+  avgMonthlySpend: number;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -128,4 +135,17 @@ export function getAverageMonthlySpend(transactions: ExpenseTransaction[]): numb
 
   const monthlyTotal = monthlyTrend.reduce((sum, row) => sum + row.total, 0);
   return Number((monthlyTotal / monthlyTrend.length).toFixed(2));
+}
+
+export function getKpiSnapshot(transactions: ExpenseTransaction[]): KpiSnapshot {
+  const summary = getDashboardSummary(transactions);
+  const topCategory = getTopCategory(transactions);
+  const avgMonthlySpend = getAverageMonthlySpend(transactions);
+
+  return {
+    totalSpend: summary.totalSpend,
+    transactionCount: summary.transactionCount,
+    topCategory: topCategory?.category ?? null,
+    avgMonthlySpend,
+  };
 }

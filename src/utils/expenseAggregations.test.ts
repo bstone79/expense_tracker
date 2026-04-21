@@ -3,6 +3,7 @@ import type { ExpenseTransaction } from "../types/expense";
 import {
   getAverageMonthlySpend,
   getDashboardSummary,
+  getKpiSnapshot,
   getMonthlySpendByType,
   getMonthlyTrend,
   getSpendByCategory,
@@ -121,5 +122,23 @@ describe("expenseAggregations", () => {
       },
     ];
     expect(getAverageMonthlySpend(sparseRows)).toBe(60);
+  });
+
+  it("builds unified KPI snapshot from filtered rows", () => {
+    expect(getKpiSnapshot(sampleRows)).toEqual({
+      totalSpend: 60.5,
+      transactionCount: 3,
+      topCategory: "Groceries",
+      avgMonthlySpend: 30.25,
+    });
+  });
+
+  it("returns stable empty KPI snapshot values for no rows", () => {
+    expect(getKpiSnapshot([])).toEqual({
+      totalSpend: 0,
+      transactionCount: 0,
+      topCategory: null,
+      avgMonthlySpend: 0,
+    });
   });
 });
