@@ -45,6 +45,20 @@ function formatMonthLabel(monthKey: string): string {
   });
 }
 
+function formatShortMonthLabel(monthKey: string): string {
+  const [yearRaw, monthRaw] = monthKey.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  if (!Number.isInteger(year) || !Number.isInteger(month)) {
+    return monthKey;
+  }
+
+  return new Date(year, month - 1, 1).toLocaleString("en-US", {
+    month: "short",
+    year: "2-digit",
+  });
+}
+
 function formatDateInputValue(value: Date | null): string {
   if (!value) {
     return "";
@@ -188,6 +202,8 @@ function App() {
 
   const kpis = useMemo(() => getKpiSnapshot(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
+  const monthlyTrendWindowed = useMemo(() => monthlyTrend.slice(-12), [monthlyTrend]);
+  const isChartWindowed = monthlyTrend.length > monthlyTrendWindowed.length;
   const transactionsByMonth = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
     for (const transaction of filteredTransactions) {
@@ -389,9 +405,15 @@ function App() {
         <h2>Monthly Spending Trend</h2>
         <div className="chart-wrap">
           <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={monthlyTrend} onClick={handleChartClick}>
+            <LineChart data={monthlyTrendWindowed} onClick={handleChartClick}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={formatShortMonthLabel}
+                interval={0}
+                minTickGap={10}
+                tick={{ fontSize: 12 }}
+              />
               <YAxis tickFormatter={(value) => `$${value}`} />
               <Tooltip formatter={(value) => formatTooltipAmount(value)} />
               <Line
@@ -405,6 +427,9 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        {isChartWindowed && (
+          <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
+        )}
         <p className="chart-hint">Click anywhere along a month on the chart to view that month's transactions.</p>
 
         {selectedMonth && (
