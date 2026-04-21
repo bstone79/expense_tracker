@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 4 - Transactions View
-- Current Task (one only): Wire table to global filter state
+- Current Task (one only): Set up local Express server with `POST /api/append-transactions`
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Set up local Express server with `POST /api/append-transactions`
+- Next Task: Build Upload view (drag/drop + file picker)
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 4 - Transactions View: Wire table to global filter state
+- [ ] Phase 5 - Upload Feature: Set up local Express server with `POST /api/append-transactions`
 
 ## Next
 
-- [ ] Phase 5 - Upload Feature: Set up local Express server with `POST /api/append-transactions`
+- [ ] Phase 5 - Upload Feature: Build Upload view (drag/drop + file picker)
 
 ## Backlog by Phase
 
@@ -62,7 +62,7 @@ Project Task Tracker
 
 - [x] Build sortable, paginated transaction table
 - [x] Add free-text description search
-- [ ] Wire table to global filter state
+- [x] Wire table to global filter state
 
 ### Phase 5 - Upload Feature [PLANNED]
 
