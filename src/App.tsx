@@ -26,7 +26,10 @@ import {
 } from "./utils/expenseAggregations";
 
 type TypeFilter = "All" | "Credit Card" | "Bank";
+type TransactionSortKey = "date" | "description" | "category" | "amount" | "type";
+type SortDirection = "asc" | "desc";
 const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
+const TRANSACTIONS_PAGE_SIZE = 25;
 
 function formatTooltipAmount(
   value: number | string | ReadonlyArray<number | string> | undefined,
@@ -109,6 +112,11 @@ function App() {
   const [intentionallySkippedRows, setIntentionallySkippedRows] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const [transactionSort, setTransactionSort] = useState<{ key: TransactionSortKey; direction: SortDirection }>({
+    key: "date",
+    direction: "desc",
+  });
+  const [transactionsPage, setTransactionsPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -243,6 +251,45 @@ function App() {
     return grouped;
   }, [filteredTransactions]);
   const selectedMonthTransactions = selectedMonth ? (transactionsByMonth.get(selectedMonth) ?? []) : [];
+  const sortedTransactions = useMemo(() => {
+    const rows = filteredTransactions.map((transaction, sourceIndex) => ({ transaction, sourceIndex }));
+    const directionMultiplier = transactionSort.direction === "asc" ? 1 : -1;
+    rows.sort((a, b) => {
+      const transactionA = a.transaction;
+      const transactionB = b.transaction;
+      let compareResult = 0;
+      switch (transactionSort.key) {
+        case "date":
+          compareResult = transactionA.date.getTime() - transactionB.date.getTime();
+          break;
+        case "description":
+          compareResult = transactionA.description.localeCompare(transactionB.description, "en-US");
+          break;
+        case "category":
+          compareResult = transactionA.category.localeCompare(transactionB.category, "en-US");
+          break;
+        case "amount":
+          compareResult = transactionA.amount - transactionB.amount;
+          break;
+        case "type":
+          compareResult = transactionA.type.localeCompare(transactionB.type, "en-US");
+          break;
+      }
+      if (compareResult !== 0) {
+        return compareResult * directionMultiplier;
+      }
+      return a.sourceIndex - b.sourceIndex;
+    });
+    return rows;
+  }, [filteredTransactions, transactionSort.direction, transactionSort.key]);
+  const totalTransactionPages = Math.max(1, Math.ceil(sortedTransactions.length / TRANSACTIONS_PAGE_SIZE));
+  const currentTransactionsPage = Math.min(transactionsPage, totalTransactionPages);
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentTransactionsPage - 1) * TRANSACTIONS_PAGE_SIZE;
+    return sortedTransactions.slice(startIndex, startIndex + TRANSACTIONS_PAGE_SIZE);
+  }, [currentTransactionsPage, sortedTransactions]);
+  const visibleStartIndex = sortedTransactions.length === 0 ? 0 : (currentTransactionsPage - 1) * TRANSACTIONS_PAGE_SIZE + 1;
+  const visibleEndIndex = Math.min(currentTransactionsPage * TRANSACTIONS_PAGE_SIZE, sortedTransactions.length);
   const groupedDrilldownRows = useMemo<DescriptionGroup[]>(() => {
     const grouped = new Map<string, DescriptionGroup>();
 
@@ -283,6 +330,10 @@ function App() {
     }
   }, [selectedMonth, transactionsByMonth]);
 
+  useEffect(() => {
+    setTransactionsPage(1);
+  }, [filteredTransactions.length, transactionSort.direction, transactionSort.key]);
+
   function handleMonthClick(monthKey: string): void {
     setExpandedGroupKeys([]);
     setSelectedMonth((current) => (current === monthKey ? null : monthKey));
@@ -321,6 +372,15 @@ function App() {
 
   function handleCategorySliceClick(category: string): void {
     setSelectedCategories([category]);
+  }
+
+  function handleTransactionSort(sortKey: TransactionSortKey): void {
+    setTransactionSort((current) => {
+      if (current.key === sortKey) {
+        return { key: sortKey, direction: current.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key: sortKey, direction: "asc" };
+    });
   }
 
   function resetFilters(): void {
@@ -596,6 +656,92 @@ function App() {
         {isTypeChartWindowed && (
           <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
         )}
+      </section>
+
+      <section className="card">
+        <h2>Transactions</h2>
+        <div className="transactions-grid-wrap">
+          <table className="transactions-grid">
+            <thead>
+              <tr>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("date")}>
+                    Date {transactionSort.key === "date" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    className="sort-header-btn"
+                    onClick={() => handleTransactionSort("description")}
+                  >
+                    Description{" "}
+                    {transactionSort.key === "description" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("category")}>
+                    Category {transactionSort.key === "category" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("amount")}>
+                    Amount {transactionSort.key === "amount" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("type")}>
+                    Type {transactionSort.key === "type" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>No transactions match the current filters.</td>
+                </tr>
+              ) : (
+                paginatedTransactions.map(({ transaction, sourceIndex }) => (
+                  <tr key={`${sourceIndex}-${transaction.date.toISOString()}-${transaction.amount}`}>
+                    <td>{formatDateLabel(transaction.date)}</td>
+                    <td>{transaction.description}</td>
+                    <td>{transaction.category}</td>
+                    <td>{formatCurrency(transaction.amount)}</td>
+                    <td>{transaction.type}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="transactions-pagination">
+          <p className="chart-hint">
+            Showing {visibleStartIndex.toLocaleString("en-US")}–{visibleEndIndex.toLocaleString("en-US")} of{" "}
+            {sortedTransactions.length.toLocaleString("en-US")}
+          </p>
+          <div className="transactions-page-controls">
+            <button
+              type="button"
+              className="reset-filters-btn"
+              onClick={() => setTransactionsPage((current) => Math.max(1, current - 1))}
+              disabled={currentTransactionsPage === 1}
+            >
+              Previous
+            </button>
+            <span className="chart-hint">
+              Page {currentTransactionsPage.toLocaleString("en-US")} of {totalTransactionPages.toLocaleString("en-US")}
+            </span>
+            <button
+              type="button"
+              className="reset-filters-btn"
+              onClick={() => setTransactionsPage((current) => Math.min(totalTransactionPages, current + 1))}
+              disabled={currentTransactionsPage >= totalTransactionPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </section>
 
       {(malformedRowsCount > 0 || intentionallySkippedRows > 0) && (
