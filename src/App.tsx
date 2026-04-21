@@ -45,6 +45,24 @@ function formatMonthLabel(monthKey: string): string {
   });
 }
 
+function formatDateInputValue(value: Date | null): string {
+  if (!value) {
+    return "";
+  }
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInputValue(value: string): Date | null {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 interface DescriptionGroup {
   key: string;
   description: string;
@@ -61,7 +79,7 @@ function App() {
   const [startDateFilter, setStartDateFilter] = useState<Date | null>(null);
   const [endDateFilter, setEndDateFilter] = useState<Date | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [typeFilter] = useState<TypeFilter>("All");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("All");
   const [malformedRows, setMalformedRows] = useState<MalformedExpenseRow[]>([]);
   const [malformedRowsCount, setMalformedRowsCount] = useState(0);
   const [intentionallySkippedRows, setIntentionallySkippedRows] = useState(0);
@@ -139,7 +157,17 @@ function App() {
     });
   }, [allCategories, dateRange.maxDate, dateRange.minDate, transactions.length]);
 
+  const hasInvalidDateRange =
+    startDateFilter !== null && endDateFilter !== null && startDateFilter.getTime() > endDateFilter.getTime();
+
   const filteredTransactions = useMemo(() => {
+    if (hasInvalidDateRange) {
+      return [];
+    }
+    if (selectedCategories.length === 0) {
+      return [];
+    }
+
     const selected = new Set(selectedCategories);
     return transactions.filter((transaction) => {
       if (startDateFilter && transaction.date < startDateFilter) {
@@ -156,7 +184,7 @@ function App() {
       }
       return true;
     });
-  }, [endDateFilter, selectedCategories, startDateFilter, transactions, typeFilter]);
+  }, [endDateFilter, hasInvalidDateRange, selectedCategories, startDateFilter, transactions, typeFilter]);
 
   const summary = useMemo(() => getDashboardSummary(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
@@ -234,6 +262,31 @@ function App() {
     }
   }
 
+  function handleStartDateChange(value: string): void {
+    setStartDateFilter(parseDateInputValue(value));
+  }
+
+  function handleEndDateChange(value: string): void {
+    setEndDateFilter(parseDateInputValue(value));
+  }
+
+  function handleCategoryToggle(category: string): void {
+    setSelectedCategories((current) =>
+      current.includes(category) ? current.filter((item) => item !== category) : [...current, category],
+    );
+  }
+
+  function handleTypeFilterChange(value: TypeFilter): void {
+    setTypeFilter(value);
+  }
+
+  function resetFilters(): void {
+    setStartDateFilter(dateRange.minDate);
+    setEndDateFilter(dateRange.maxDate);
+    setSelectedCategories(allCategories);
+    setTypeFilter("All");
+  }
+
   if (loading) {
     return <main className="app">Loading expense data...</main>;
   }
@@ -254,6 +307,64 @@ function App() {
     <main className="app">
       <h1>Expenses Tracker</h1>
       <p className="subtitle">Local read-only dashboard from expense_data.csv</p>
+
+      <section className="card filter-bar">
+        <h2>Filters</h2>
+        <div className="filter-grid">
+          <label className="filter-field">
+            <span>Start Date</span>
+            <input
+              type="date"
+              value={formatDateInputValue(startDateFilter)}
+              onChange={(event) => handleStartDateChange(event.target.value)}
+            />
+          </label>
+          <label className="filter-field">
+            <span>End Date</span>
+            <input
+              type="date"
+              value={formatDateInputValue(endDateFilter)}
+              onChange={(event) => handleEndDateChange(event.target.value)}
+            />
+          </label>
+          <label className="filter-field">
+            <span>Payment Type</span>
+            <select value={typeFilter} onChange={(event) => handleTypeFilterChange(event.target.value as TypeFilter)}>
+              <option value="All">All</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Bank">Bank</option>
+            </select>
+          </label>
+          <button type="button" className="reset-filters-btn" onClick={resetFilters}>
+            Reset Filters
+          </button>
+        </div>
+        <fieldset className="category-filter-list">
+          <legend>Categories</legend>
+          <div className="category-filter-options">
+            {allCategories.map((category) => (
+              <label key={category} className="category-option">
+                <input
+                  type="checkbox"
+                  checked={selectedCategories.includes(category)}
+                  onChange={() => handleCategoryToggle(category)}
+                />
+                <span>{category}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {hasInvalidDateRange && (
+          <p className="filter-warning">Start date cannot be after end date. Please adjust the selected range.</p>
+        )}
+      </section>
+
+      {filteredTransactions.length === 0 && !hasInvalidDateRange && (
+        <section className="card empty-results-card">
+          <h2>No matching transactions</h2>
+          <p>Try broadening your filters or use Reset Filters to restore the default range.</p>
+        </section>
+      )}
 
       <section className="kpi-grid">
         <article className="card">
@@ -295,60 +406,64 @@ function App() {
         {selectedMonth && (
           <section className="drilldown-section">
             <h3>Transactions for {formatMonthLabel(selectedMonth)}</h3>
-            <div className="transactions-grid-wrap transactions-grid-scroll">
-              <table className="transactions-grid">
-                <thead>
-                  <tr>
-                    <th aria-label="Expand row"></th>
-                    <th>Description</th>
-                    <th>Entries</th>
-                    <th>Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupedDrilldownRows.map((group) => {
-                    const isExpanded = expandedGroupKeys.includes(group.key);
-                    return (
-                      <Fragment key={group.key}>
-                        <tr className="summary-row">
-                          <td>
-                            <button
-                              type="button"
-                              className="expand-arrow-btn"
-                              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${group.description}`}
-                              aria-expanded={isExpanded}
-                              onClick={() => toggleGroupExpansion(group.key)}
-                            >
-                              {isExpanded ? "▼" : "▶"}
-                            </button>
-                          </td>
-                          <td>{group.description}</td>
-                          <td>{group.transactions.length.toLocaleString("en-US")}</td>
-                          <td>{formatCurrency(group.totalAmount)}</td>
-                        </tr>
-                        {isExpanded &&
-                          group.transactions.map((transaction) => (
-                            <tr
-                              key={`${group.key}-${transaction.date.toISOString()}-${transaction.amount}-${transaction.type}`}
-                              className="detail-row"
-                            >
-                              <td></td>
-                              <td>
-                                {transaction.description}
-                                <div className="detail-meta">
-                                  {formatDateLabel(transaction.date)} | {transaction.category} | {transaction.type}
-                                </div>
-                              </td>
-                              <td>1</td>
-                              <td>{formatCurrency(transaction.amount)}</td>
-                            </tr>
-                          ))}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {groupedDrilldownRows.length === 0 ? (
+              <p className="chart-hint">No transactions match the current filters for this month.</p>
+            ) : (
+              <div className="transactions-grid-wrap transactions-grid-scroll">
+                <table className="transactions-grid">
+                  <thead>
+                    <tr>
+                      <th aria-label="Expand row"></th>
+                      <th>Description</th>
+                      <th>Entries</th>
+                      <th>Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedDrilldownRows.map((group) => {
+                      const isExpanded = expandedGroupKeys.includes(group.key);
+                      return (
+                        <Fragment key={group.key}>
+                          <tr className="summary-row">
+                            <td>
+                              <button
+                                type="button"
+                                className="expand-arrow-btn"
+                                aria-label={`${isExpanded ? "Collapse" : "Expand"} ${group.description}`}
+                                aria-expanded={isExpanded}
+                                onClick={() => toggleGroupExpansion(group.key)}
+                              >
+                                {isExpanded ? "▼" : "▶"}
+                              </button>
+                            </td>
+                            <td>{group.description}</td>
+                            <td>{group.transactions.length.toLocaleString("en-US")}</td>
+                            <td>{formatCurrency(group.totalAmount)}</td>
+                          </tr>
+                          {isExpanded &&
+                            group.transactions.map((transaction) => (
+                              <tr
+                                key={`${group.key}-${transaction.date.toISOString()}-${transaction.amount}-${transaction.type}`}
+                                className="detail-row"
+                              >
+                                <td></td>
+                                <td>
+                                  {transaction.description}
+                                  <div className="detail-meta">
+                                    {formatDateLabel(transaction.date)} | {transaction.category} | {transaction.type}
+                                  </div>
+                                </td>
+                                <td>1</td>
+                                <td>{formatCurrency(transaction.amount)}</td>
+                              </tr>
+                            ))}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         )}
       </section>
