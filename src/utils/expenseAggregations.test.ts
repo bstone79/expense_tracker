@@ -5,6 +5,7 @@ import {
   getMonthlySpendByType,
   getMonthlyTrend,
   getSpendByCategory,
+  getTopCategory,
 } from "./expenseAggregations";
 
 const sampleRows: ExpenseTransaction[] = [
@@ -61,5 +62,35 @@ describe("expenseAggregations", () => {
       { month: "2026-01", creditCardTotal: 20, bankTotal: 30.5 },
       { month: "2026-02", creditCardTotal: 10, bankTotal: 0 },
     ]);
+  });
+
+  it("returns the highest spend category for top-category KPI", () => {
+    const topCategory = getTopCategory(sampleRows);
+    expect(topCategory).toEqual({ category: "Groceries", total: 30.5 });
+  });
+
+  it("returns alphabetically first category when top totals are tied", () => {
+    const tiedRows: ExpenseTransaction[] = [
+      {
+        date: new Date(2026, 0, 1),
+        description: "X",
+        category: "Dining",
+        amount: 40,
+        type: "Credit Card",
+      },
+      {
+        date: new Date(2026, 0, 2),
+        description: "Y",
+        category: "Groceries",
+        amount: 40,
+        type: "Bank",
+      },
+    ];
+    const topCategory = getTopCategory(tiedRows);
+    expect(topCategory).toEqual({ category: "Dining", total: 40 });
+  });
+
+  it("returns null for top category when no transactions are provided", () => {
+    expect(getTopCategory([])).toBeNull();
   });
 });

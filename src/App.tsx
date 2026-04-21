@@ -15,6 +15,7 @@ import {
   formatCurrency,
   getDashboardSummary,
   getMonthlyTrend,
+  getTopCategory,
 } from "./utils/expenseAggregations";
 
 type TypeFilter = "All" | "Credit Card" | "Bank";
@@ -187,6 +188,7 @@ function App() {
   }, [endDateFilter, hasInvalidDateRange, selectedCategories, startDateFilter, transactions, typeFilter]);
 
   const summary = useMemo(() => getDashboardSummary(filteredTransactions), [filteredTransactions]);
+  const topCategory = useMemo(() => getTopCategory(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
   const transactionsByMonth = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
@@ -376,8 +378,8 @@ function App() {
           <p className="kpi-value">{summary.transactionCount.toLocaleString("en-US")}</p>
         </article>
         <article className="card">
-          <h2>Categories</h2>
-          <p className="kpi-value">{summary.categoryCount.toLocaleString("en-US")}</p>
+          <h2>Top Category</h2>
+          <p className="kpi-value">{topCategory ? topCategory.category : "N/A"}</p>
         </article>
       </section>
 
