@@ -94,7 +94,7 @@ The application should reference a single, configurable path to the CSV file on 
 
 4. Tech Stack
    Based on the existing repository, the confirmed tech stack is:
-   LayerTechnologyStatusFrameworkReact 18+✅ In useLanguageTypeScript✅ In useBuild ToolVite✅ In useChartingRecharts✅ In use (LineChart)CSV ParsingPapaParse✅ In useStylingCSS (App.css / index.css)✅ In useStatement ParsingClaude API (Anthropic)🔲 To be addedLocal BackendNode.js + Express🔲 To be added (required for upload feature)PDF Extractionpdfjs-dist🔲 To be added
+   LayerTechnologyStatusFrameworkReact 18+✅ In useLanguageTypeScript✅ In useBuild ToolVite✅ In useChartingRecharts✅ In use (LineChart)CSV ParsingPapaParse✅ In useStylingCSS (App.css / index.css)✅ In useStatement ParsingGemini API (Google)🔲 To be addedLocal BackendNode.js + Express🔲 To be added (required for upload feature)PDF Extractionpdfjs-dist🔲 To be added
 
 5. Application Structure
    5.1 Layout
@@ -204,13 +204,13 @@ The Dashboard and Transactions views refresh to include the new data
 Credit Card statement — PDF or CSV export from a major issuer (e.g., Chase, Citi, Amex)
 Bank statement — PDF or CSV export from a major bank (e.g., Chase, Bank of America)
 
-7.3 Parsing Strategy — Claude API Integration
-Because statement formats vary significantly between institutions, the application should use the Anthropic Claude API to intelligently parse uploaded statement content and map it to the standard schema.
+7.3 Parsing Strategy — Gemini API Integration
+Because statement formats vary significantly between institutions, the application should use the Google Gemini API to intelligently parse uploaded statement content and map it to the standard schema.
 Flow:
 
 If the uploaded file is a PDF, extract text client-side using a library such as pdf.js or pdfjs-dist
 If the uploaded file is a CSV, read it as plain text
-Send the extracted text to the Claude API with a structured prompt instructing it to:
+Send the extracted text to the Gemini API with a structured prompt instructing it to:
 
 Identify transaction rows
 Extract date, description, and amount
@@ -237,7 +237,7 @@ Because browser-based JavaScript cannot write to the local filesystem directly, 
 POST /api/append-transactions — accepts an array of transaction objects, validates the schema, and appends them to the CSV file
 
 8. Non-Functional Requirements
-   RequirementDetailPerformanceDashboard should load and render within 2 seconds for the full 1,592-row datasetLocal-onlyNo data should be sent to any external service except the Claude API (for statement parsing only)PrivacyThe Claude API call for statement parsing should use ephemeral or minimal data retention settings if availableResilienceMalformed rows in the CSV should be skipped with a warning, not crash the appResponsivenessApplication should be usable on a standard desktop browser at 1280px+ width; mobile is not required for MVP
+   RequirementDetailPerformanceDashboard should load and render within 2 seconds for the full 1,592-row datasetLocal-onlyNo data should be sent to any external service except the Gemini API (for statement parsing only)PrivacyThe Gemini API call for statement parsing should use minimal data retention settings if availableResilienceMalformed rows in the CSV should be skipped with a warning, not crash the appResponsivenessApplication should be usable on a standard desktop browser at 1280px+ width; mobile is not required for MVP
 
 9. Out of Scope for MVP
    The following features are explicitly deferred to future versions:
@@ -259,9 +259,9 @@ CSV path strategy
 - Use `public/expense_data.csv` as the locked MVP source path.
 - Runtime reads should fetch this file so app data can refresh without rebuild.
 
-Claude API key handling
+Gemini API key handling
 - API key must be stored only in backend environment variables.
-- Frontend must never directly receive or store the Claude API key.
+- Frontend must never directly receive or store the Gemini API key.
 
 PDF extraction failure behavior
 - If uploaded PDF text extraction fails (for example, scanned/image PDFs), show a clear error message and require CSV upload instead.

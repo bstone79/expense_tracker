@@ -11,6 +11,17 @@ export interface MonthlyTrendPoint {
   total: number;
 }
 
+export interface SpendByCategoryPoint {
+  category: string;
+  total: number;
+}
+
+export interface MonthlySpendByTypePoint {
+  month: string;
+  creditCardTotal: number;
+  bankTotal: number;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -43,4 +54,47 @@ export function getMonthlyTrend(transactions: ExpenseTransaction[]): MonthlyTren
   return Array.from(grouped.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, total]) => ({ month, total: Number(total.toFixed(2)) }));
+}
+
+export function getSpendByCategory(transactions: ExpenseTransaction[]): SpendByCategoryPoint[] {
+  const grouped = new Map<string, number>();
+
+  for (const transaction of transactions) {
+    grouped.set(transaction.category, (grouped.get(transaction.category) ?? 0) + transaction.amount);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([category, total]) => ({ category, total: Number(total.toFixed(2)) }))
+    .sort((a, b) => b.total - a.total || a.category.localeCompare(b.category, "en-US"));
+}
+
+export function getMonthlySpendByType(transactions: ExpenseTransaction[]): MonthlySpendByTypePoint[] {
+  const grouped = new Map<string, MonthlySpendByTypePoint>();
+
+  for (const transaction of transactions) {
+    const year = transaction.date.getFullYear();
+    const month = transaction.date.getMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+    const current = grouped.get(monthKey) ?? {
+      month: monthKey,
+      creditCardTotal: 0,
+      bankTotal: 0,
+    };
+
+    if (transaction.type === "Credit Card") {
+      current.creditCardTotal += transaction.amount;
+    } else if (transaction.type === "Bank") {
+      current.bankTotal += transaction.amount;
+    }
+
+    grouped.set(monthKey, current);
+  }
+
+  return Array.from(grouped.values())
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map((row) => ({
+      ...row,
+      creditCardTotal: Number(row.creditCardTotal.toFixed(2)),
+      bankTotal: Number(row.bankTotal.toFixed(2)),
+    }));
 }
