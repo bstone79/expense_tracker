@@ -112,6 +112,7 @@ function App() {
   const [intentionallySkippedRows, setIntentionallySkippedRows] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const [descriptionSearchTerm, setDescriptionSearchTerm] = useState("");
   const [transactionSort, setTransactionSort] = useState<{ key: TransactionSortKey; direction: SortDirection }>({
     key: "date",
     direction: "desc",
@@ -251,8 +252,15 @@ function App() {
     return grouped;
   }, [filteredTransactions]);
   const selectedMonthTransactions = selectedMonth ? (transactionsByMonth.get(selectedMonth) ?? []) : [];
+  const searchedTransactions = useMemo(() => {
+    const normalizedSearch = descriptionSearchTerm.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return filteredTransactions;
+    }
+    return filteredTransactions.filter((transaction) => transaction.description.toLowerCase().includes(normalizedSearch));
+  }, [descriptionSearchTerm, filteredTransactions]);
   const sortedTransactions = useMemo(() => {
-    const rows = filteredTransactions.map((transaction, sourceIndex) => ({ transaction, sourceIndex }));
+    const rows = searchedTransactions.map((transaction, sourceIndex) => ({ transaction, sourceIndex }));
     const directionMultiplier = transactionSort.direction === "asc" ? 1 : -1;
     rows.sort((a, b) => {
       const transactionA = a.transaction;
@@ -281,7 +289,7 @@ function App() {
       return a.sourceIndex - b.sourceIndex;
     });
     return rows;
-  }, [filteredTransactions, transactionSort.direction, transactionSort.key]);
+  }, [searchedTransactions, transactionSort.direction, transactionSort.key]);
   const totalTransactionPages = Math.max(1, Math.ceil(sortedTransactions.length / TRANSACTIONS_PAGE_SIZE));
   const currentTransactionsPage = Math.min(transactionsPage, totalTransactionPages);
   const paginatedTransactions = useMemo(() => {
@@ -332,7 +340,7 @@ function App() {
 
   useEffect(() => {
     setTransactionsPage(1);
-  }, [filteredTransactions.length, transactionSort.direction, transactionSort.key]);
+  }, [descriptionSearchTerm, filteredTransactions.length, transactionSort.direction, transactionSort.key]);
 
   function handleMonthClick(monthKey: string): void {
     setExpandedGroupKeys([]);
@@ -660,6 +668,15 @@ function App() {
 
       <section className="card">
         <h2>Transactions</h2>
+        <label className="transactions-search-field">
+          <span>Description Search</span>
+          <input
+            type="search"
+            value={descriptionSearchTerm}
+            onChange={(event) => setDescriptionSearchTerm(event.target.value)}
+            placeholder="Search descriptions..."
+          />
+        </label>
         <div className="transactions-grid-wrap">
           <table className="transactions-grid">
             <thead>

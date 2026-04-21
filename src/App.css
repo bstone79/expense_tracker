@@ -186,6 +186,23 @@ h2 {
   overflow-x: auto;
 }
 
+.transactions-search-field {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.transactions-search-field input {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.42rem 0.55rem;
+  font-size: 0.9rem;
+  background: #fff;
+  max-width: 380px;
+}
+
 .transactions-grid-scroll {
   max-height: 340px;
   overflow-y: auto;
