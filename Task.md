@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 4 - Transactions View
-- Current Task (one only): Build sortable, paginated transaction table
+- Current Task (one only): Add free-text description search
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Add free-text description search
+- Next Task: Wire table to global filter state
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 4 - Transactions View: Build sortable, paginated transaction table
+- [ ] Phase 4 - Transactions View: Add free-text description search
 
 ## Next
 
-- [ ] Phase 4 - Transactions View: Add free-text description search
+- [ ] Phase 4 - Transactions View: Wire table to global filter state
 
 ## Backlog by Phase
 
@@ -60,7 +60,7 @@ Project Task Tracker
 
 ### Phase 4 - Transactions View [PLANNED]
 
-- [ ] Build sortable, paginated transaction table
+- [x] Build sortable, paginated transaction table
 - [ ] Add free-text description search
 - [ ] Wire table to global filter state
 
