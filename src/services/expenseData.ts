@@ -1,5 +1,4 @@
 import Papa from "papaparse";
-import csvRaw from "../../expense_data.csv?raw";
 import type {
   ExpenseLoadResult,
   ExpenseTransaction,
@@ -7,6 +6,7 @@ import type {
 } from "../types/expense";
 
 const REQUIRED_COLUMNS = ["Date", "Description", "Category", "Amount", "Type"] as const;
+const EXPENSE_DATA_PATH = "/expense_data.csv";
 
 type CsvRow = Record<string, string | undefined>;
 type ParsedRowResult =
@@ -136,5 +136,13 @@ export function parseExpenseCsv(csvText: string): ExpenseLoadResult {
 }
 
 export async function loadExpenseData(): Promise<ExpenseLoadResult> {
-  return parseExpenseCsv(csvRaw);
+  const response = await fetch(EXPENSE_DATA_PATH, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(
+      `Could not load ${EXPENSE_DATA_PATH}. Ensure public/expense_data.csv exists and is readable.`,
+    );
+  }
+
+  const csvText = await response.text();
+  return parseExpenseCsv(csvText);
 }
