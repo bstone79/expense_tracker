@@ -2,9 +2,9 @@ Project Task Tracker
 
 ## Snapshot
 - Current Phase: Phase 3 - Dashboard Enhancements
-- Current Task (one only): Wire KPI tiles to filter state
+- Current Task (one only): Wire monthly line chart to filter state and shorten X-axis labels
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Wire monthly line chart to filter state and shorten X-axis labels
+- Next Task: Build category breakdown pie/donut chart
 - Blockers: None
 
 ## Locked Decisions
@@ -21,10 +21,10 @@ Project Task Tracker
 - Keep only one task marked in progress at a time
 
 ## In Progress
-- [ ] Phase 3 - Dashboard Enhancements: Wire KPI tiles to filter state
+- [ ] Phase 3 - Dashboard Enhancements: Wire monthly line chart to filter state and shorten X-axis labels
 
 ## Next
-- [ ] Phase 3 - Dashboard Enhancements: Wire monthly line chart to filter state and shorten X-axis labels
+- [ ] Phase 3 - Dashboard Enhancements: Build category breakdown pie/donut chart
 
 ## Backlog by Phase
 
@@ -44,7 +44,7 @@ Project Task Tracker
 ### Phase 3 - Dashboard Enhancements [ACTIVE]
 - [x] Replace "Category Count" KPI with "Top Category"
 - [x] Add "Avg. Monthly Spend" KPI
-- [ ] Wire KPI tiles to filter state
+- [x] Wire KPI tiles to filter state
 - [ ] Wire monthly line chart to filter state and shorten X-axis labels
 - [ ] Build category breakdown pie/donut chart
 - [ ] Build credit-card-vs-bank monthly chart
