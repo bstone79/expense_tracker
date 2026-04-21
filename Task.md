@@ -35,10 +35,10 @@ Project Task Tracker
 - [x] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
 
 ## In Progress
-- [ ] Wire filter state into all aggregation calls
+- [ ] Phase 2 - Filters: Wire filter state into all aggregation calls
 
 ## Next
-- [ ] Replace "Category Count" KPI with "Top Category"
+- [ ] Phase 3 - Dashboard Enhancements: Replace "Category Count" KPI with "Top Category"
 
 ## Backlog by Phase
 
