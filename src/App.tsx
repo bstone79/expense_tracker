@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Line,
@@ -18,6 +20,7 @@ import type { ExpenseTransaction, MalformedExpenseRow } from "./types/expense";
 import {
   formatCurrency,
   getKpiSnapshot,
+  getMonthlySpendByType,
   getMonthlyTrend,
   getSpendByCategory,
 } from "./utils/expenseAggregations";
@@ -208,13 +211,16 @@ function App() {
 
   const kpis = useMemo(() => getKpiSnapshot(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
+  const monthlySpendByType = useMemo(() => getMonthlySpendByType(filteredTransactions), [filteredTransactions]);
   const spendByCategory = useMemo(() => getSpendByCategory(filteredTransactions), [filteredTransactions]);
   const categorySpendTotal = useMemo(
     () => spendByCategory.reduce((sum, row) => sum + row.total, 0),
     [spendByCategory],
   );
   const monthlyTrendWindowed = useMemo(() => monthlyTrend.slice(-12), [monthlyTrend]);
+  const monthlySpendByTypeWindowed = useMemo(() => monthlySpendByType.slice(-12), [monthlySpendByType]);
   const isChartWindowed = monthlyTrend.length > monthlyTrendWindowed.length;
+  const isTypeChartWindowed = monthlySpendByType.length > monthlySpendByTypeWindowed.length;
   const transactionsByMonth = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
     for (const transaction of filteredTransactions) {
@@ -550,6 +556,32 @@ function App() {
           </ResponsiveContainer>
         </div>
         <p className="chart-hint">Click a slice to filter the dashboard to that category.</p>
+      </section>
+
+      <section className="card">
+        <h2>Monthly Spend by Payment Type</h2>
+        <div className="chart-wrap">
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlySpendByTypeWindowed}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={formatShortMonthLabel}
+                interval={0}
+                minTickGap={10}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis tickFormatter={(value) => `$${value}`} />
+              <Tooltip formatter={(value) => formatTooltipAmount(value)} />
+              <Legend />
+              <Bar dataKey="creditCardTotal" name="Credit Card" fill="#2563eb" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="bankTotal" name="Bank" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {isTypeChartWindowed && (
+          <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
+        )}
       </section>
 
       {(malformedRowsCount > 0 || intentionallySkippedRows > 0) && (
