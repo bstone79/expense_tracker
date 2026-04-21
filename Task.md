@@ -1,6 +1,7 @@
 Project Task Tracker
 
 ## Snapshot
+
 - Current Phase: Phase 3 - Dashboard Enhancements
 - Current Task (one only): Build credit-card-vs-bank monthly chart
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
@@ -8,6 +9,7 @@ Project Task Tracker
 - Blockers: None
 
 ## Locked Decisions
+
 - CSV path for MVP: `public/expense_data.csv`
 - Gemini API key location: backend environment variables only
 - PDF extraction failure: show error and require CSV upload
@@ -15,20 +17,24 @@ Project Task Tracker
 - Duplicate default behavior: exclude detected duplicates by default
 
 ## Workflow Rules
+
 - Update this file before each coding task
 - Begin coding only after explicit approval in chat
 - After each coding task, provide manual testing steps
 - Keep only one task marked in progress at a time
 
 ## In Progress
+
 - [ ] Phase 3 - Dashboard Enhancements: Build credit-card-vs-bank monthly chart
 
 ## Next
+
 - [ ] Phase 3 - Dashboard Enhancements: Improve drilldown UX (visible close action, category at summary level)
 
 ## Backlog by Phase
 
 ### Phase 1 - Data & Architecture [DONE]
+
 - [x] Set up PapaParse CSV loading (`expenseData.ts`)
 - [x] Define core types/data model (`expense.ts`)
 - [x] Build baseline aggregation helpers (`expenseAggregations.ts`)
@@ -37,11 +43,13 @@ Project Task Tracker
 - [x] Add `getMonthlySpendByType()` aggregation helper
 
 ### Phase 2 - Filters [DONE]
+
 - [x] Build global filter state (date range, category, type)
 - [x] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
 - [x] Wire filter state into all aggregation calls
 
 ### Phase 3 - Dashboard Enhancements [ACTIVE]
+
 - [x] Replace "Category Count" KPI with "Top Category"
 - [x] Add "Avg. Monthly Spend" KPI
 - [x] Wire KPI tiles to filter state
@@ -51,11 +59,14 @@ Project Task Tracker
 - [ ] Improve drilldown UX (visible close action, category at summary level)
 
 ### Phase 4 - Transactions View [PLANNED]
+
+- [ ] Add Payment Type and Date as visible columns in the Transactions View
 - [ ] Build sortable, paginated transaction table
 - [ ] Add free-text description search
 - [ ] Wire table to global filter state
 
 ### Phase 5 - Upload Feature [PLANNED]
+
 - [ ] Set up local Express server with `POST /api/append-transactions`
 - [ ] Build Upload view (drag/drop + file picker)
 - [ ] Implement PDF text extraction (`pdfjs-dist`)
@@ -65,9 +76,11 @@ Project Task Tracker
 - [ ] Refresh app data after successful upload
 
 ### Phase 6 - Polish [PLANNED]
+
 - [ ] Improve error handling (API errors, malformed statements, upload failures)
 - [ ] Standardize category colors/badges across views
 - [ ] Run end-to-end test with real bank and credit card statements
 
 ## Blockers / Decisions
+
 - None currently
