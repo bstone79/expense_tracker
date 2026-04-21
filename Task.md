@@ -2,10 +2,10 @@ Project Task Tracker
 
 ## Snapshot
 
-- Current Phase: Phase 3 - Dashboard Enhancements
-- Current Task (one only): Add Payment Type and Date as visible columns in the Transactions View
+- Current Phase: Phase 4 - Transactions View
+- Current Task (one only): Build sortable, paginated transaction table
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Build sortable, paginated transaction table
+- Next Task: Add free-text description search
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 4 - Transactions View: Add Payment Type and Date as visible columns in the Transactions View
+- [ ] Phase 4 - Transactions View: Build sortable, paginated transaction table
 
 ## Next
 
-- [ ] Phase 4 - Transactions View: Build sortable, paginated transaction table
+- [ ] Phase 4 - Transactions View: Add free-text description search
 
 ## Backlog by Phase
 
