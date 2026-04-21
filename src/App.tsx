@@ -340,7 +340,7 @@ function App() {
 
   useEffect(() => {
     setTransactionsPage(1);
-  }, [descriptionSearchTerm, filteredTransactions.length, transactionSort.direction, transactionSort.key]);
+  }, [descriptionSearchTerm, filteredTransactions, transactionSort.direction, transactionSort.key]);
 
   function handleMonthClick(monthKey: string): void {
     setExpandedGroupKeys([]);
