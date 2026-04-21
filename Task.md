@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 4 - Transactions View
-- Current Task (one only): Add free-text description search
+- Current Task (one only): Wire table to global filter state
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Wire table to global filter state
+- Next Task: Set up local Express server with `POST /api/append-transactions`
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 4 - Transactions View: Add free-text description search
+- [ ] Phase 4 - Transactions View: Wire table to global filter state
 
 ## Next
 
-- [ ] Phase 4 - Transactions View: Wire table to global filter state
+- [ ] Phase 5 - Upload Feature: Set up local Express server with `POST /api/append-transactions`
 
 ## Backlog by Phase
 
@@ -61,7 +61,7 @@ Project Task Tracker
 ### Phase 4 - Transactions View [PLANNED]
 
 - [x] Build sortable, paginated transaction table
-- [ ] Add free-text description search
+- [x] Add free-text description search
 - [ ] Wire table to global filter state
 
 ### Phase 5 - Upload Feature [PLANNED]
