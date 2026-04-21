@@ -12,4 +12,5 @@ These rules apply to all coding sessions in this repository.
 8. Commit and push only files requested by the user for that step.
 9. Ask the user if they would like to push the changes to the git repo before asking to move on to the next step.
 10. Keep responses high-level when the user asks for high-level plans.
-11. If unexpected repo changes appear, stop and ask how to proceed.
+11. After each step code commit, immediately update and separately commit `Task.md` before moving to the next step.
+12. If unexpected repo changes appear, stop and ask how to proceed.
