@@ -2,9 +2,9 @@ Project Task Tracker
 
 ## Snapshot
 - Current Phase: Phase 3 - Dashboard Enhancements
-- Current Task (one only): Build category breakdown pie/donut chart
+- Current Task (one only): Build credit-card-vs-bank monthly chart
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Build credit-card-vs-bank monthly chart
+- Next Task: Improve drilldown UX (visible close action, category at summary level)
 - Blockers: None
 
 ## Locked Decisions
@@ -21,10 +21,10 @@ Project Task Tracker
 - Keep only one task marked in progress at a time
 
 ## In Progress
-- [ ] Phase 3 - Dashboard Enhancements: Build category breakdown pie/donut chart
+- [ ] Phase 3 - Dashboard Enhancements: Build credit-card-vs-bank monthly chart
 
 ## Next
-- [ ] Phase 3 - Dashboard Enhancements: Build credit-card-vs-bank monthly chart
+- [ ] Phase 3 - Dashboard Enhancements: Improve drilldown UX (visible close action, category at summary level)
 
 ## Backlog by Phase
 
@@ -46,7 +46,7 @@ Project Task Tracker
 - [x] Add "Avg. Monthly Spend" KPI
 - [x] Wire KPI tiles to filter state
 - [x] Wire monthly line chart to filter state and shorten X-axis labels
-- [ ] Build category breakdown pie/donut chart
+- [x] Build category breakdown pie/donut chart
 - [ ] Build credit-card-vs-bank monthly chart
 - [ ] Improve drilldown UX (visible close action, category at summary level)
 
