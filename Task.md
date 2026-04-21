@@ -2,9 +2,9 @@ Project Task Tracker
 
 ## Snapshot
 - Current Phase: Phase 3 - Dashboard Enhancements
-- Current Task (one only): Replace "Category Count" KPI with "Top Category"
+- Current Task (one only): Add "Avg. Monthly Spend" KPI
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Add "Avg. Monthly Spend" KPI
+- Next Task: Wire KPI tiles to filter state
 - Blockers: None
 
 ## Locked Decisions
@@ -21,10 +21,10 @@ Project Task Tracker
 - Keep only one task marked in progress at a time
 
 ## In Progress
-- [ ] Phase 3 - Dashboard Enhancements: Replace "Category Count" KPI with "Top Category"
+- [ ] Phase 3 - Dashboard Enhancements: Add "Avg. Monthly Spend" KPI
 
 ## Next
-- [ ] Phase 3 - Dashboard Enhancements: Add "Avg. Monthly Spend" KPI
+- [ ] Phase 3 - Dashboard Enhancements: Wire KPI tiles to filter state
 
 ## Backlog by Phase
 
@@ -42,7 +42,7 @@ Project Task Tracker
 - [x] Wire filter state into all aggregation calls
 
 ### Phase 3 - Dashboard Enhancements [ACTIVE]
-- [ ] Replace "Category Count" KPI with "Top Category"
+- [x] Replace "Category Count" KPI with "Top Category"
 - [ ] Add "Avg. Monthly Spend" KPI
 - [ ] Wire KPI tiles to filter state
 - [ ] Wire monthly line chart to filter state and shorten X-axis labels
