@@ -1,8 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
+  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,9 +19,11 @@ import {
   formatCurrency,
   getKpiSnapshot,
   getMonthlyTrend,
+  getSpendByCategory,
 } from "./utils/expenseAggregations";
 
 type TypeFilter = "All" | "Credit Card" | "Bank";
+const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
 
 function formatTooltipAmount(
   value: number | string | ReadonlyArray<number | string> | undefined,
@@ -202,6 +208,11 @@ function App() {
 
   const kpis = useMemo(() => getKpiSnapshot(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
+  const spendByCategory = useMemo(() => getSpendByCategory(filteredTransactions), [filteredTransactions]);
+  const categorySpendTotal = useMemo(
+    () => spendByCategory.reduce((sum, row) => sum + row.total, 0),
+    [spendByCategory],
+  );
   const monthlyTrendWindowed = useMemo(() => monthlyTrend.slice(-12), [monthlyTrend]);
   const isChartWindowed = monthlyTrend.length > monthlyTrendWindowed.length;
   const transactionsByMonth = useMemo(() => {
@@ -294,6 +305,10 @@ function App() {
 
   function handleTypeFilterChange(value: TypeFilter): void {
     setTypeFilter(value);
+  }
+
+  function handleCategorySliceClick(category: string): void {
+    setSelectedCategories([category]);
   }
 
   function resetFilters(): void {
@@ -495,6 +510,46 @@ function App() {
             )}
           </section>
         )}
+      </section>
+
+      <section className="card">
+        <h2>Spending by Category</h2>
+        <div className="chart-wrap">
+          <ResponsiveContainer width="100%" height={320}>
+            <PieChart>
+              <Pie
+                data={spendByCategory}
+                dataKey="total"
+                nameKey="category"
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={2}
+                onClick={(_entry, index) => {
+                  const point = spendByCategory[index];
+                  if (point) {
+                    handleCategorySliceClick(point.category);
+                  }
+                }}
+              >
+                {spendByCategory.map((point, index) => (
+                  <Cell key={point.category} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value, name) => {
+                  const numeric = typeof value === "number" ? value : Number(value);
+                  const percentage =
+                    categorySpendTotal > 0 && Number.isFinite(numeric) ? (numeric / categorySpendTotal) * 100 : 0;
+                  return [`${formatCurrency(numeric)} (${percentage.toFixed(1)}%)`, String(name)];
+                }}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="chart-hint">Click a slice to filter the dashboard to that category.</p>
       </section>
 
       {(malformedRowsCount > 0 || intentionallySkippedRows > 0) && (
