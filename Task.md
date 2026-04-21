@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 3 - Dashboard Enhancements
-- Current Task (one only): Improve drilldown UX (visible close action, category at summary level)
+- Current Task (one only): Add Payment Type and Date as visible columns in the Transactions View
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Add Payment Type and Date as visible columns in the Transactions View
+- Next Task: Build sortable, paginated transaction table
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 3 - Dashboard Enhancements: Improve drilldown UX (visible close action, category at summary level)
+- [ ] Phase 4 - Transactions View: Add Payment Type and Date as visible columns in the Transactions View
 
 ## Next
 
-- [ ] Phase 4 - Transactions View: Add Payment Type and Date as visible columns in the Transactions View
+- [ ] Phase 4 - Transactions View: Build sortable, paginated transaction table
 
 ## Backlog by Phase
 
@@ -56,11 +56,10 @@ Project Task Tracker
 - [x] Wire monthly line chart to filter state and shorten X-axis labels
 - [x] Build category breakdown pie/donut chart
 - [x] Build credit-card-vs-bank monthly chart
-- [ ] Improve drilldown UX (visible close action, category at summary level)
+- [x] Improve drilldown UX (visible close action, category at summary level)
 
 ### Phase 4 - Transactions View [PLANNED]
 
-- [ ] Add Payment Type and Date as visible columns in the Transactions View
 - [ ] Build sortable, paginated transaction table
 - [ ] Add free-text description search
 - [ ] Wire table to global filter state
