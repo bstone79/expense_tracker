@@ -10,5 +10,6 @@ These rules apply to all coding sessions in this repository.
 6. Keep exactly one task marked as in progress at any time.
 7. Do not open, merge, or push PR-related changes unless explicitly requested.
 8. Commit and push only files requested by the user for that step.
-9. Keep responses high-level when the user asks for high-level plans.
-10. If unexpected repo changes appear, stop and ask how to proceed.
+9. Ask the user if they would like to push the changes to the git repo before asking to move on to the next step.
+10. Keep responses high-level when the user asks for high-level plans.
+11. If unexpected repo changes appear, stop and ask how to proceed.
