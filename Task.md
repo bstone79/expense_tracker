@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 3 - Dashboard Enhancements
-- Current Task (one only): Build credit-card-vs-bank monthly chart
+- Current Task (one only): Improve drilldown UX (visible close action, category at summary level)
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Improve drilldown UX (visible close action, category at summary level)
+- Next Task: Add Payment Type and Date as visible columns in the Transactions View
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 3 - Dashboard Enhancements: Build credit-card-vs-bank monthly chart
+- [ ] Phase 3 - Dashboard Enhancements: Improve drilldown UX (visible close action, category at summary level)
 
 ## Next
 
-- [ ] Phase 3 - Dashboard Enhancements: Improve drilldown UX (visible close action, category at summary level)
+- [ ] Phase 4 - Transactions View: Add Payment Type and Date as visible columns in the Transactions View
 
 ## Backlog by Phase
 
@@ -55,7 +55,7 @@ Project Task Tracker
 - [x] Wire KPI tiles to filter state
 - [x] Wire monthly line chart to filter state and shorten X-axis labels
 - [x] Build category breakdown pie/donut chart
-- [ ] Build credit-card-vs-bank monthly chart
+- [x] Build credit-card-vs-bank monthly chart
 - [ ] Improve drilldown UX (visible close action, category at summary level)
 
 ### Phase 4 - Transactions View [PLANNED]
