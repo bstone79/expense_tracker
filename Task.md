@@ -2,9 +2,9 @@ Project Task Tracker
 
 ## Snapshot
 - Current Phase: Phase 2 - Filters
-- Current Task (one only): Build global filter state (date range, category, payment type)
+- Current Task (one only): Wire filter state into all active dashboard aggregations
 - Progress: Phase 1 complete (6 of 6 tasks)
-- Next Task: Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
+- Next Task: Begin Phase 3 dashboard KPI enhancements
 - Blockers: None
 
 ## Locked Decisions
@@ -30,17 +30,21 @@ Project Task Tracker
 - [x] Add `getSpendByCategory()` aggregation helper
 - [x] Add `getMonthlySpendByType()` aggregation helper
 
+### Phase 2 - Filters (Completed Steps)
+- [x] Build global filter state (date range, category, payment type)
+- [x] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
+
 ## In Progress
-- [ ] Build global filter state (date range, category, payment type)
+- [ ] Wire filter state into all aggregation calls
 
 ## Next
-- [ ] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
+- [ ] Replace "Category Count" KPI with "Top Category"
 
 ## Backlog by Phase
 
 ### Phase 2 - Filters
-- [ ] Build global filter state (date range, category, type)
-- [ ] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
+- [x] Build global filter state (date range, category, type)
+- [x] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
 - [ ] Wire filter state into all aggregation calls
 
 ### Phase 3 - Dashboard Enhancements
