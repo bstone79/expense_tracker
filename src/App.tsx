@@ -1,8 +1,14 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
+  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,11 +19,17 @@ import { loadExpenseData } from "./services/expenseData";
 import type { ExpenseTransaction, MalformedExpenseRow } from "./types/expense";
 import {
   formatCurrency,
-  getDashboardSummary,
+  getKpiSnapshot,
+  getMonthlySpendByType,
   getMonthlyTrend,
+  getSpendByCategory,
 } from "./utils/expenseAggregations";
 
 type TypeFilter = "All" | "Credit Card" | "Bank";
+type TransactionSortKey = "date" | "description" | "category" | "amount" | "type";
+type SortDirection = "asc" | "desc";
+const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
+const TRANSACTIONS_PAGE_SIZE = 25;
 
 function formatTooltipAmount(
   value: number | string | ReadonlyArray<number | string> | undefined,
@@ -45,6 +57,20 @@ function formatMonthLabel(monthKey: string): string {
   });
 }
 
+function formatShortMonthLabel(monthKey: string): string {
+  const [yearRaw, monthRaw] = monthKey.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  if (!Number.isInteger(year) || !Number.isInteger(month)) {
+    return monthKey;
+  }
+
+  return new Date(year, month - 1, 1).toLocaleString("en-US", {
+    month: "short",
+    year: "2-digit",
+  });
+}
+
 function formatDateInputValue(value: Date | null): string {
   if (!value) {
     return "";
@@ -66,6 +92,7 @@ function parseDateInputValue(value: string): Date | null {
 interface DescriptionGroup {
   key: string;
   description: string;
+  categoryLabel: string;
   totalAmount: number;
   transactions: ExpenseTransaction[];
 }
@@ -85,6 +112,12 @@ function App() {
   const [intentionallySkippedRows, setIntentionallySkippedRows] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [expandedGroupKeys, setExpandedGroupKeys] = useState<string[]>([]);
+  const [descriptionSearchTerm, setDescriptionSearchTerm] = useState("");
+  const [transactionSort, setTransactionSort] = useState<{ key: TransactionSortKey; direction: SortDirection }>({
+    key: "date",
+    direction: "desc",
+  });
+  const [transactionsPage, setTransactionsPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -186,8 +219,18 @@ function App() {
     });
   }, [endDateFilter, hasInvalidDateRange, selectedCategories, startDateFilter, transactions, typeFilter]);
 
-  const summary = useMemo(() => getDashboardSummary(filteredTransactions), [filteredTransactions]);
+  const kpis = useMemo(() => getKpiSnapshot(filteredTransactions), [filteredTransactions]);
   const monthlyTrend = useMemo(() => getMonthlyTrend(filteredTransactions), [filteredTransactions]);
+  const monthlySpendByType = useMemo(() => getMonthlySpendByType(filteredTransactions), [filteredTransactions]);
+  const spendByCategory = useMemo(() => getSpendByCategory(filteredTransactions), [filteredTransactions]);
+  const categorySpendTotal = useMemo(
+    () => spendByCategory.reduce((sum, row) => sum + row.total, 0),
+    [spendByCategory],
+  );
+  const monthlyTrendWindowed = useMemo(() => monthlyTrend.slice(-12), [monthlyTrend]);
+  const monthlySpendByTypeWindowed = useMemo(() => monthlySpendByType.slice(-12), [monthlySpendByType]);
+  const isChartWindowed = monthlyTrend.length > monthlyTrendWindowed.length;
+  const isTypeChartWindowed = monthlySpendByType.length > monthlySpendByTypeWindowed.length;
   const transactionsByMonth = useMemo(() => {
     const grouped = new Map<string, ExpenseTransaction[]>();
     for (const transaction of filteredTransactions) {
@@ -209,6 +252,52 @@ function App() {
     return grouped;
   }, [filteredTransactions]);
   const selectedMonthTransactions = selectedMonth ? (transactionsByMonth.get(selectedMonth) ?? []) : [];
+  const searchedTransactions = useMemo(() => {
+    const normalizedSearch = descriptionSearchTerm.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return filteredTransactions;
+    }
+    return filteredTransactions.filter((transaction) => transaction.description.toLowerCase().includes(normalizedSearch));
+  }, [descriptionSearchTerm, filteredTransactions]);
+  const sortedTransactions = useMemo(() => {
+    const rows = searchedTransactions.map((transaction, sourceIndex) => ({ transaction, sourceIndex }));
+    const directionMultiplier = transactionSort.direction === "asc" ? 1 : -1;
+    rows.sort((a, b) => {
+      const transactionA = a.transaction;
+      const transactionB = b.transaction;
+      let compareResult = 0;
+      switch (transactionSort.key) {
+        case "date":
+          compareResult = transactionA.date.getTime() - transactionB.date.getTime();
+          break;
+        case "description":
+          compareResult = transactionA.description.localeCompare(transactionB.description, "en-US");
+          break;
+        case "category":
+          compareResult = transactionA.category.localeCompare(transactionB.category, "en-US");
+          break;
+        case "amount":
+          compareResult = transactionA.amount - transactionB.amount;
+          break;
+        case "type":
+          compareResult = transactionA.type.localeCompare(transactionB.type, "en-US");
+          break;
+      }
+      if (compareResult !== 0) {
+        return compareResult * directionMultiplier;
+      }
+      return a.sourceIndex - b.sourceIndex;
+    });
+    return rows;
+  }, [searchedTransactions, transactionSort.direction, transactionSort.key]);
+  const totalTransactionPages = Math.max(1, Math.ceil(sortedTransactions.length / TRANSACTIONS_PAGE_SIZE));
+  const currentTransactionsPage = Math.min(transactionsPage, totalTransactionPages);
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentTransactionsPage - 1) * TRANSACTIONS_PAGE_SIZE;
+    return sortedTransactions.slice(startIndex, startIndex + TRANSACTIONS_PAGE_SIZE);
+  }, [currentTransactionsPage, sortedTransactions]);
+  const visibleStartIndex = sortedTransactions.length === 0 ? 0 : (currentTransactionsPage - 1) * TRANSACTIONS_PAGE_SIZE + 1;
+  const visibleEndIndex = Math.min(currentTransactionsPage * TRANSACTIONS_PAGE_SIZE, sortedTransactions.length);
   const groupedDrilldownRows = useMemo<DescriptionGroup[]>(() => {
     const grouped = new Map<string, DescriptionGroup>();
 
@@ -222,6 +311,7 @@ function App() {
         grouped.set(key, {
           key,
           description: transaction.description,
+          categoryLabel: transaction.category,
           totalAmount: transaction.amount,
           transactions: [transaction],
         });
@@ -231,6 +321,10 @@ function App() {
     return Array.from(grouped.values())
       .map((group) => ({
         ...group,
+        categoryLabel:
+          new Set(group.transactions.map((transaction) => transaction.category)).size === 1
+            ? group.transactions[0].category
+            : "Multiple",
         totalAmount: Number(group.totalAmount.toFixed(2)),
         transactions: [...group.transactions].sort((a, b) => a.date.getTime() - b.date.getTime()),
       }))
@@ -243,6 +337,10 @@ function App() {
       setExpandedGroupKeys([]);
     }
   }, [selectedMonth, transactionsByMonth]);
+
+  useEffect(() => {
+    setTransactionsPage(1);
+  }, [descriptionSearchTerm, filteredTransactions, transactionSort.direction, transactionSort.key]);
 
   function handleMonthClick(monthKey: string): void {
     setExpandedGroupKeys([]);
@@ -278,6 +376,19 @@ function App() {
 
   function handleTypeFilterChange(value: TypeFilter): void {
     setTypeFilter(value);
+  }
+
+  function handleCategorySliceClick(category: string): void {
+    setSelectedCategories([category]);
+  }
+
+  function handleTransactionSort(sortKey: TransactionSortKey): void {
+    setTransactionSort((current) => {
+      if (current.key === sortKey) {
+        return { key: sortKey, direction: current.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key: sortKey, direction: "asc" };
+    });
   }
 
   function resetFilters(): void {
@@ -369,15 +480,19 @@ function App() {
       <section className="kpi-grid">
         <article className="card">
           <h2>Total Spend</h2>
-          <p className="kpi-value">{formatCurrency(summary.totalSpend)}</p>
+          <p className="kpi-value">{formatCurrency(kpis.totalSpend)}</p>
         </article>
         <article className="card">
           <h2>Transactions</h2>
-          <p className="kpi-value">{summary.transactionCount.toLocaleString("en-US")}</p>
+          <p className="kpi-value">{kpis.transactionCount.toLocaleString("en-US")}</p>
         </article>
         <article className="card">
-          <h2>Categories</h2>
-          <p className="kpi-value">{summary.categoryCount.toLocaleString("en-US")}</p>
+          <h2>Top Category</h2>
+          <p className="kpi-value">{kpis.topCategory ?? "N/A"}</p>
+        </article>
+        <article className="card">
+          <h2>Avg. Monthly Spend</h2>
+          <p className="kpi-value">{formatCurrency(kpis.avgMonthlySpend)}</p>
         </article>
       </section>
 
@@ -385,9 +500,15 @@ function App() {
         <h2>Monthly Spending Trend</h2>
         <div className="chart-wrap">
           <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={monthlyTrend} onClick={handleChartClick}>
+            <LineChart data={monthlyTrendWindowed} onClick={handleChartClick}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={formatShortMonthLabel}
+                interval={0}
+                minTickGap={10}
+                tick={{ fontSize: 12 }}
+              />
               <YAxis tickFormatter={(value) => `$${value}`} />
               <Tooltip formatter={(value) => formatTooltipAmount(value)} />
               <Line
@@ -401,11 +522,19 @@ function App() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        {isChartWindowed && (
+          <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
+        )}
         <p className="chart-hint">Click anywhere along a month on the chart to view that month's transactions.</p>
 
         {selectedMonth && (
           <section className="drilldown-section">
-            <h3>Transactions for {formatMonthLabel(selectedMonth)}</h3>
+            <div className="drilldown-header">
+              <h3>Transactions for {formatMonthLabel(selectedMonth)}</h3>
+              <button type="button" className="drilldown-close-btn" onClick={() => setSelectedMonth(null)}>
+                Close
+              </button>
+            </div>
             {groupedDrilldownRows.length === 0 ? (
               <p className="chart-hint">No transactions match the current filters for this month.</p>
             ) : (
@@ -415,6 +544,7 @@ function App() {
                     <tr>
                       <th aria-label="Expand row"></th>
                       <th>Description</th>
+                      <th>Category</th>
                       <th>Entries</th>
                       <th>Total Amount</th>
                     </tr>
@@ -437,6 +567,7 @@ function App() {
                               </button>
                             </td>
                             <td>{group.description}</td>
+                            <td>{group.categoryLabel}</td>
                             <td>{group.transactions.length.toLocaleString("en-US")}</td>
                             <td>{formatCurrency(group.totalAmount)}</td>
                           </tr>
@@ -453,6 +584,7 @@ function App() {
                                     {formatDateLabel(transaction.date)} | {transaction.category} | {transaction.type}
                                   </div>
                                 </td>
+                                <td>{transaction.category}</td>
                                 <td>1</td>
                                 <td>{formatCurrency(transaction.amount)}</td>
                               </tr>
@@ -466,6 +598,167 @@ function App() {
             )}
           </section>
         )}
+      </section>
+
+      <section className="card">
+        <h2>Spending by Category</h2>
+        <div className="chart-wrap">
+          <ResponsiveContainer width="100%" height={320}>
+            <PieChart>
+              <Pie
+                data={spendByCategory}
+                dataKey="total"
+                nameKey="category"
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={2}
+                onClick={(_entry, index) => {
+                  const point = spendByCategory[index];
+                  if (point) {
+                    handleCategorySliceClick(point.category);
+                  }
+                }}
+              >
+                {spendByCategory.map((point, index) => (
+                  <Cell key={point.category} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value, name) => {
+                  const numeric = typeof value === "number" ? value : Number(value);
+                  const percentage =
+                    categorySpendTotal > 0 && Number.isFinite(numeric) ? (numeric / categorySpendTotal) * 100 : 0;
+                  return [`${formatCurrency(numeric)} (${percentage.toFixed(1)}%)`, String(name)];
+                }}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="chart-hint">Click a slice to filter the dashboard to that category.</p>
+      </section>
+
+      <section className="card">
+        <h2>Monthly Spend by Payment Type</h2>
+        <div className="chart-wrap">
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlySpendByTypeWindowed}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="month"
+                tickFormatter={formatShortMonthLabel}
+                interval={0}
+                minTickGap={10}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis tickFormatter={(value) => `$${value}`} />
+              <Tooltip formatter={(value) => formatTooltipAmount(value)} />
+              <Legend />
+              <Bar dataKey="creditCardTotal" name="Credit Card" fill="#2563eb" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="bankTotal" name="Bank" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {isTypeChartWindowed && (
+          <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>Transactions</h2>
+        <label className="transactions-search-field">
+          <span>Description Search</span>
+          <input
+            type="search"
+            value={descriptionSearchTerm}
+            onChange={(event) => setDescriptionSearchTerm(event.target.value)}
+            placeholder="Search descriptions..."
+          />
+        </label>
+        <div className="transactions-grid-wrap">
+          <table className="transactions-grid">
+            <thead>
+              <tr>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("date")}>
+                    Date {transactionSort.key === "date" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    className="sort-header-btn"
+                    onClick={() => handleTransactionSort("description")}
+                  >
+                    Description{" "}
+                    {transactionSort.key === "description" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("category")}>
+                    Category {transactionSort.key === "category" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("amount")}>
+                    Amount {transactionSort.key === "amount" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("type")}>
+                    Type {transactionSort.key === "type" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>No transactions match the current filters.</td>
+                </tr>
+              ) : (
+                paginatedTransactions.map(({ transaction, sourceIndex }) => (
+                  <tr key={`${sourceIndex}-${transaction.date.toISOString()}-${transaction.amount}`}>
+                    <td>{formatDateLabel(transaction.date)}</td>
+                    <td>{transaction.description}</td>
+                    <td>{transaction.category}</td>
+                    <td>{formatCurrency(transaction.amount)}</td>
+                    <td>{transaction.type}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="transactions-pagination">
+          <p className="chart-hint">
+            Showing {visibleStartIndex.toLocaleString("en-US")}–{visibleEndIndex.toLocaleString("en-US")} of{" "}
+            {sortedTransactions.length.toLocaleString("en-US")}
+          </p>
+          <div className="transactions-page-controls">
+            <button
+              type="button"
+              className="reset-filters-btn"
+              onClick={() => setTransactionsPage((current) => Math.max(1, current - 1))}
+              disabled={currentTransactionsPage === 1}
+            >
+              Previous
+            </button>
+            <span className="chart-hint">
+              Page {currentTransactionsPage.toLocaleString("en-US")} of {totalTransactionPages.toLocaleString("en-US")}
+            </span>
+            <button
+              type="button"
+              className="reset-filters-btn"
+              onClick={() => setTransactionsPage((current) => Math.min(totalTransactionPages, current + 1))}
+              disabled={currentTransactionsPage >= totalTransactionPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </section>
 
       {(malformedRowsCount > 0 || intentionallySkippedRows > 0) && (

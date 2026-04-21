@@ -22,6 +22,18 @@ export interface MonthlySpendByTypePoint {
   bankTotal: number;
 }
 
+export interface TopCategoryResult {
+  category: string;
+  total: number;
+}
+
+export interface KpiSnapshot {
+  totalSpend: number;
+  transactionCount: number;
+  topCategory: string | null;
+  avgMonthlySpend: number;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -97,4 +109,43 @@ export function getMonthlySpendByType(transactions: ExpenseTransaction[]): Month
       creditCardTotal: Number(row.creditCardTotal.toFixed(2)),
       bankTotal: Number(row.bankTotal.toFixed(2)),
     }));
+}
+
+export function getTopCategory(transactions: ExpenseTransaction[]): TopCategoryResult | null {
+  const spendByCategory = getSpendByCategory(transactions);
+  if (spendByCategory.length === 0) {
+    return null;
+  }
+  const top = spendByCategory[0];
+  return {
+    category: top.category,
+    total: top.total,
+  };
+}
+
+export function getAverageMonthlySpend(transactions: ExpenseTransaction[]): number {
+  if (transactions.length === 0) {
+    return 0;
+  }
+
+  const monthlyTrend = getMonthlyTrend(transactions);
+  if (monthlyTrend.length === 0) {
+    return 0;
+  }
+
+  const monthlyTotal = monthlyTrend.reduce((sum, row) => sum + row.total, 0);
+  return Number((monthlyTotal / monthlyTrend.length).toFixed(2));
+}
+
+export function getKpiSnapshot(transactions: ExpenseTransaction[]): KpiSnapshot {
+  const summary = getDashboardSummary(transactions);
+  const topCategory = getTopCategory(transactions);
+  const avgMonthlySpend = getAverageMonthlySpend(transactions);
+
+  return {
+    totalSpend: summary.totalSpend,
+    transactionCount: summary.transactionCount,
+    topCategory: topCategory?.category ?? null,
+    avgMonthlySpend,
+  };
 }
