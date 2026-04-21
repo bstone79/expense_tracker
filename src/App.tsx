@@ -89,6 +89,7 @@ function parseDateInputValue(value: string): Date | null {
 interface DescriptionGroup {
   key: string;
   description: string;
+  categoryLabel: string;
   totalAmount: number;
   transactions: ExpenseTransaction[];
 }
@@ -255,6 +256,7 @@ function App() {
         grouped.set(key, {
           key,
           description: transaction.description,
+          categoryLabel: transaction.category,
           totalAmount: transaction.amount,
           transactions: [transaction],
         });
@@ -264,6 +266,10 @@ function App() {
     return Array.from(grouped.values())
       .map((group) => ({
         ...group,
+        categoryLabel:
+          new Set(group.transactions.map((transaction) => transaction.category)).size === 1
+            ? group.transactions[0].category
+            : "Multiple",
         totalAmount: Number(group.totalAmount.toFixed(2)),
         transactions: [...group.transactions].sort((a, b) => a.date.getTime() - b.date.getTime()),
       }))
@@ -455,7 +461,12 @@ function App() {
 
         {selectedMonth && (
           <section className="drilldown-section">
-            <h3>Transactions for {formatMonthLabel(selectedMonth)}</h3>
+            <div className="drilldown-header">
+              <h3>Transactions for {formatMonthLabel(selectedMonth)}</h3>
+              <button type="button" className="drilldown-close-btn" onClick={() => setSelectedMonth(null)}>
+                Close
+              </button>
+            </div>
             {groupedDrilldownRows.length === 0 ? (
               <p className="chart-hint">No transactions match the current filters for this month.</p>
             ) : (
@@ -465,6 +476,7 @@ function App() {
                     <tr>
                       <th aria-label="Expand row"></th>
                       <th>Description</th>
+                      <th>Category</th>
                       <th>Entries</th>
                       <th>Total Amount</th>
                     </tr>
@@ -487,6 +499,7 @@ function App() {
                               </button>
                             </td>
                             <td>{group.description}</td>
+                            <td>{group.categoryLabel}</td>
                             <td>{group.transactions.length.toLocaleString("en-US")}</td>
                             <td>{formatCurrency(group.totalAmount)}</td>
                           </tr>
@@ -503,6 +516,7 @@ function App() {
                                     {formatDateLabel(transaction.date)} | {transaction.category} | {transaction.type}
                                   </div>
                                 </td>
+                                <td>{transaction.category}</td>
                                 <td>1</td>
                                 <td>{formatCurrency(transaction.amount)}</td>
                               </tr>
