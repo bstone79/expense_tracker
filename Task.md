@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 5 - Upload Feature
-- Current Task (one only): Implement PDF text extraction (`pdfjs-dist`)
+- Current Task (one only): Implement Gemini parsing + categorization integration
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks), Phase 3 complete (7 of 7 tasks), Phase 4 complete (3 of 3 tasks)
-- Next Task: Implement Gemini parsing + categorization integration
+- Next Task: Build preview table with duplicate highlighting
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 5 - Upload Feature: Implement PDF text extraction (`pdfjs-dist`)
+- [ ] Phase 5 - Upload Feature: Implement Gemini parsing + categorization integration
 
 ## Next
 
-- [ ] Phase 5 - Upload Feature: Implement Gemini parsing + categorization integration
+- [ ] Phase 5 - Upload Feature: Build preview table with duplicate highlighting
 
 ## Backlog by Phase
 
@@ -68,7 +68,7 @@ Project Task Tracker
 
 - [x] Set up local Express server with `POST /api/append-transactions`
 - [x] Build Upload view (drag/drop + file picker)
-- [ ] Implement PDF text extraction (`pdfjs-dist`)
+- [x] Implement PDF text extraction (`pdfjs-dist`)
 - [ ] Implement Gemini parsing + categorization integration
 - [ ] Build preview table with duplicate highlighting
 - [ ] Wire confirm-and-append flow to backend
