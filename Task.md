@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 5 - Upload Feature
-- Current Task (one only): Build preview table with accept/decline controls, duplicate highlighting, and category editing
+- Current Task (one only): Wire confirm-and-append flow to backend
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks), Phase 3 complete (7 of 7 tasks), Phase 4 complete (3 of 3 tasks)
-- Next Task: Wire confirm-and-append flow to backend
+- Next Task: Refresh app data after successful upload
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 5 - Upload Feature: Build preview table with accept/decline controls, duplicate highlighting, and category editing
+- [ ] Phase 5 - Upload Feature: Wire confirm-and-append flow to backend
 
 ## Next
 
-- [ ] Phase 5 - Upload Feature: Wire confirm-and-append flow to backend
+- [ ] Phase 5 - Upload Feature: Refresh app data after successful upload
 
 ## Backlog by Phase
 
@@ -70,7 +70,7 @@ Project Task Tracker
 - [x] Build Upload view (drag/drop + file picker)
 - [x] Implement PDF text extraction (`pdfjs-dist`)
 - [x] Implement Gemini parsing + categorization integration with user-selected statement type
-- [ ] Build preview table with accept/decline controls, duplicate highlighting, and category editing
+- [x] Build preview table with accept/decline controls, duplicate highlighting, and category editing
 - [ ] Wire confirm-and-append flow to backend
 - [ ] Refresh app data after successful upload
 
