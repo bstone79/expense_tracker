@@ -409,3 +409,13 @@ h2 {
   flex-wrap: wrap;
   margin-top: 0.6rem;
 }
+
+.upload-status {
+  margin: 0.65rem 0 0.1rem;
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.upload-status.success {
+  color: #166534;
+}

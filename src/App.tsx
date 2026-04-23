@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import "./App.css";
 import { loadExpenseData } from "./services/expenseData";
+import { extractTextFromPdf } from "./services/pdfExtraction";
 import type { ExpenseTransaction, MalformedExpenseRow } from "./types/expense";
 import {
   formatCurrency,
@@ -29,6 +30,7 @@ type TypeFilter = "All" | "Credit Card" | "Bank";
 type TransactionSortKey = "date" | "description" | "category" | "amount" | "type";
 type SortDirection = "asc" | "desc";
 type AppView = "Dashboard" | "Transactions" | "Upload";
+type UploadProcessingState = "idle" | "extracting-pdf" | "pdf-ready";
 const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
 const TRANSACTIONS_PAGE_SIZE = 25;
 
@@ -102,6 +104,14 @@ function normalizeDescription(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+function getUploadFileExtension(fileName: string): string {
+  const trimmed = fileName.trim();
+  if (!trimmed.includes(".")) {
+    return "";
+  }
+  return trimmed.slice(trimmed.lastIndexOf(".")).toLowerCase();
+}
+
 function App() {
   const [transactions, setTransactions] = useState<ExpenseTransaction[]>([]);
   const [startDateFilter, setStartDateFilter] = useState<Date | null>(null);
@@ -122,10 +132,13 @@ function App() {
   const [transactionsPage, setTransactionsPage] = useState(1);
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProcessingState, setUploadProcessingState] = useState<UploadProcessingState>("idle");
+  const [extractedPdfTextLength, setExtractedPdfTextLength] = useState<number>(0);
   const [isUploadDragActive, setIsUploadDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadSelectionRequestRef = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -405,33 +418,72 @@ function App() {
   }
 
   function validateUploadFile(file: File): string | null {
-    const fileName = file.name.trim();
-    const extension = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".")).toLowerCase() : "";
+    const extension = getUploadFileExtension(file.name);
     if (extension !== ".csv" && extension !== ".pdf") {
       return "Please select a .csv or .pdf statement file.";
     }
     return null;
   }
 
-  function handleUploadFileSelection(file: File | null): void {
+  async function handleUploadFileSelection(file: File | null): Promise<void> {
+    uploadSelectionRequestRef.current += 1;
+    const currentSelectionId = uploadSelectionRequestRef.current;
+
     if (!file) {
       setSelectedUploadFile(null);
       setUploadError(null);
+      setUploadProcessingState("idle");
+      setExtractedPdfTextLength(0);
       return;
     }
+
     const validationError = validateUploadFile(file);
     if (validationError) {
       setSelectedUploadFile(null);
       setUploadError(validationError);
+      setUploadProcessingState("idle");
+      setExtractedPdfTextLength(0);
       return;
     }
+
     setSelectedUploadFile(file);
     setUploadError(null);
+    setExtractedPdfTextLength(0);
+
+    const extension = getUploadFileExtension(file.name);
+    if (extension !== ".pdf") {
+      setUploadProcessingState("idle");
+      return;
+    }
+
+    setUploadProcessingState("extracting-pdf");
+    try {
+      const extractedText = await extractTextFromPdf(file);
+      if (currentSelectionId !== uploadSelectionRequestRef.current) {
+        return;
+      }
+
+      const normalized = extractedText.trim();
+      if (!normalized) {
+        throw new Error("No extractable text found");
+      }
+
+      setExtractedPdfTextLength(normalized.length);
+      setUploadProcessingState("pdf-ready");
+    } catch {
+      if (currentSelectionId !== uploadSelectionRequestRef.current) {
+        return;
+      }
+      setUploadProcessingState("idle");
+      setSelectedUploadFile(null);
+      setExtractedPdfTextLength(0);
+      setUploadError("PDF text extraction failed. Please upload a CSV statement instead.");
+    }
   }
 
   function handleUploadInputChange(event: ChangeEvent<HTMLInputElement>): void {
     const selectedFile = event.target.files?.[0] ?? null;
-    handleUploadFileSelection(selectedFile);
+    void handleUploadFileSelection(selectedFile);
     event.target.value = "";
   }
 
@@ -439,7 +491,7 @@ function App() {
     event.preventDefault();
     setIsUploadDragActive(false);
     const droppedFile = event.dataTransfer.files?.[0] ?? null;
-    handleUploadFileSelection(droppedFile);
+    void handleUploadFileSelection(droppedFile);
   }
 
   if (loading) {
@@ -869,10 +921,18 @@ function App() {
                 <button type="button" className="reset-filters-btn" onClick={() => uploadInputRef.current?.click()}>
                   Replace File
                 </button>
-                <button type="button" className="reset-filters-btn" onClick={() => handleUploadFileSelection(null)}>
+                <button type="button" className="reset-filters-btn" onClick={() => void handleUploadFileSelection(null)}>
                   Remove File
                 </button>
               </div>
+              {uploadProcessingState === "extracting-pdf" && (
+                <p className="upload-status">Extracting text from PDF...</p>
+              )}
+              {uploadProcessingState === "pdf-ready" && (
+                <p className="upload-status success">
+                  PDF text extraction complete ({extractedPdfTextLength.toLocaleString("en-US")} characters).
+                </p>
+              )}
             </div>
           ) : (
             <p className="chart-hint">No file selected.</p>
