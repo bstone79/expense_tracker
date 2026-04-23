@@ -364,6 +364,11 @@ h2 {
   margin-top: 1rem;
 }
 
+.upload-type-field {
+  margin-top: 0.4rem;
+  max-width: 260px;
+}
+
 .upload-file-input {
   position: absolute;
   width: 1px;
@@ -418,4 +423,15 @@ h2 {
 
 .upload-status.success {
   color: #166534;
+}
+
+.parsed-preview-section {
+  margin-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.8rem;
+}
+
+.parsed-preview-section h3 {
+  margin: 0 0 0.55rem;
+  font-size: 1rem;
 }

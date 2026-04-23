@@ -27,10 +27,18 @@ import {
 } from "./utils/expenseAggregations";
 
 type TypeFilter = "All" | "Credit Card" | "Bank";
+type StatementType = "Credit Card" | "Bank";
 type TransactionSortKey = "date" | "description" | "category" | "amount" | "type";
 type SortDirection = "asc" | "desc";
 type AppView = "Dashboard" | "Transactions" | "Upload";
-type UploadProcessingState = "idle" | "extracting-pdf" | "pdf-ready";
+type UploadProcessingState = "idle" | "extracting-pdf" | "parsing";
+type ParsedUploadTransaction = {
+  Date: string;
+  Description: string;
+  Category: string;
+  Amount: number;
+  Type: StatementType;
+};
 const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
 const TRANSACTIONS_PAGE_SIZE = 25;
 
@@ -131,14 +139,15 @@ function App() {
   const [activeView, setActiveView] = useState<AppView>("Dashboard");
   const [transactionsPage, setTransactionsPage] = useState(1);
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [selectedStatementType, setSelectedStatementType] = useState<StatementType | "">("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProcessingState, setUploadProcessingState] = useState<UploadProcessingState>("idle");
   const [extractedPdfTextLength, setExtractedPdfTextLength] = useState<number>(0);
+  const [parsedUploadTransactions, setParsedUploadTransactions] = useState<ParsedUploadTransaction[]>([]);
   const [isUploadDragActive, setIsUploadDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
-  const uploadSelectionRequestRef = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -426,14 +435,12 @@ function App() {
   }
 
   async function handleUploadFileSelection(file: File | null): Promise<void> {
-    uploadSelectionRequestRef.current += 1;
-    const currentSelectionId = uploadSelectionRequestRef.current;
-
     if (!file) {
       setSelectedUploadFile(null);
       setUploadError(null);
       setUploadProcessingState("idle");
       setExtractedPdfTextLength(0);
+      setParsedUploadTransactions([]);
       return;
     }
 
@@ -443,41 +450,123 @@ function App() {
       setUploadError(validationError);
       setUploadProcessingState("idle");
       setExtractedPdfTextLength(0);
+      setParsedUploadTransactions([]);
       return;
     }
 
     setSelectedUploadFile(file);
     setUploadError(null);
     setExtractedPdfTextLength(0);
+    setParsedUploadTransactions([]);
+    setUploadProcessingState("idle");
+  }
 
+  async function parseStatementFile(file: File): Promise<{ text: string; extractedPdfLength: number }> {
     const extension = getUploadFileExtension(file.name);
-    if (extension !== ".pdf") {
-      setUploadProcessingState("idle");
+    if (extension === ".pdf") {
+      const extractedText = await extractTextFromPdf(file);
+      const normalized = extractedText.trim();
+      return {
+        text: normalized,
+        extractedPdfLength: normalized.length,
+      };
+    }
+
+    const csvText = await file.text();
+    return {
+      text: csvText.trim(),
+      extractedPdfLength: 0,
+    };
+  }
+
+  async function handleParseStatement(): Promise<void> {
+    if (!selectedUploadFile) {
+      setUploadError("Select a statement file before parsing.");
       return;
     }
 
-    setUploadProcessingState("extracting-pdf");
+    if (!selectedStatementType) {
+      setUploadError("Select statement type before parsing.");
+      return;
+    }
+
+    setUploadError(null);
+    setParsedUploadTransactions([]);
+    setExtractedPdfTextLength(0);
+
     try {
-      const extractedText = await extractTextFromPdf(file);
-      if (currentSelectionId !== uploadSelectionRequestRef.current) {
-        return;
+      const extension = getUploadFileExtension(selectedUploadFile.name);
+      if (extension === ".pdf") {
+        setUploadProcessingState("extracting-pdf");
+      } else {
+        setUploadProcessingState("parsing");
       }
 
-      const normalized = extractedText.trim();
-      if (!normalized) {
-        throw new Error("No extractable text found");
+      const { text: statementText, extractedPdfLength } = await parseStatementFile(selectedUploadFile);
+      if (!statementText) {
+        throw new Error("No statement text found to parse.");
+      }
+      if (extractedPdfLength > 0) {
+        setExtractedPdfTextLength(extractedPdfLength);
       }
 
-      setExtractedPdfTextLength(normalized.length);
-      setUploadProcessingState("pdf-ready");
-    } catch {
-      if (currentSelectionId !== uploadSelectionRequestRef.current) {
-        return;
+      setUploadProcessingState("parsing");
+
+      const response = await fetch("/api/parse-statement", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          statementType: selectedStatementType,
+          statementText,
+        }),
+      });
+
+      const rawResponseText = await response.text();
+      const payload = (() => {
+        if (!rawResponseText) {
+          return {};
+        }
+        try {
+          return JSON.parse(rawResponseText) as Record<string, unknown>;
+        } catch {
+          return {};
+        }
+      })() as {
+        transactions?: ParsedUploadTransaction[];
+        error?: string;
+        details?: string;
+      };
+      if (!response.ok) {
+        const serverMessage =
+          typeof payload.error === "string" && payload.error.trim().length > 0
+            ? payload.error.trim()
+            : rawResponseText.trim().slice(0, 220);
+        const serverDetails =
+          typeof payload.details === "string" && payload.details.trim().length > 0
+            ? payload.details.trim().slice(0, 260)
+            : "";
+        const statusSummary = `Parse request failed (${response.status}).`;
+        const detailSuffix = serverDetails ? ` Details: ${serverDetails}` : "";
+        throw new Error(serverMessage ? `${statusSummary} ${serverMessage}${detailSuffix}` : statusSummary);
       }
+
+      const rows = Array.isArray(payload.transactions) ? payload.transactions : [];
+      setParsedUploadTransactions(rows);
+      if (rows.length === 0) {
+        setUploadError("No spending transactions were returned for this statement.");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to parse statement.";
+      if (message === "No extractable text found") {
+        setUploadError("PDF text extraction failed. Please upload a CSV statement instead.");
+      } else {
+        setUploadError(message);
+      }
+      setParsedUploadTransactions([]);
+    } finally {
       setUploadProcessingState("idle");
-      setSelectedUploadFile(null);
-      setExtractedPdfTextLength(0);
-      setUploadError("PDF text extraction failed. Please upload a CSV statement instead.");
     }
   }
 
@@ -881,7 +970,22 @@ function App() {
       {activeView === "Upload" && (
         <section className="card upload-card">
           <h2>Upload Statement</h2>
-          <p className="chart-hint">Upload a statement file in CSV or PDF format.</p>
+          <p className="chart-hint">Select statement type, upload a file, then parse with Gemini.</p>
+          <label className="filter-field upload-type-field">
+            <span>Statement Type</span>
+            <select
+              value={selectedStatementType}
+              onChange={(event) => {
+                setSelectedStatementType(event.target.value as StatementType | "");
+                setUploadError(null);
+                setParsedUploadTransactions([]);
+              }}
+            >
+              <option value="">Select type...</option>
+              <option value="Bank">Bank</option>
+              <option value="Credit Card">Credit Card</option>
+            </select>
+          </label>
           <input
             ref={uploadInputRef}
             type="file"
@@ -928,14 +1032,59 @@ function App() {
               {uploadProcessingState === "extracting-pdf" && (
                 <p className="upload-status">Extracting text from PDF...</p>
               )}
-              {uploadProcessingState === "pdf-ready" && (
+              {uploadProcessingState === "idle" && extractedPdfTextLength > 0 && !uploadError && (
                 <p className="upload-status success">
                   PDF text extraction complete ({extractedPdfTextLength.toLocaleString("en-US")} characters).
                 </p>
               )}
+              {uploadProcessingState === "parsing" && <p className="upload-status">Parsing statement with Gemini...</p>}
+              <div className="upload-file-actions">
+                <button
+                  type="button"
+                  className="reset-filters-btn"
+                  disabled={uploadProcessingState === "extracting-pdf" || uploadProcessingState === "parsing"}
+                  onClick={() => void handleParseStatement()}
+                >
+                  Parse Statement
+                </button>
+              </div>
             </div>
           ) : (
             <p className="chart-hint">No file selected.</p>
+          )}
+
+          {parsedUploadTransactions.length > 0 && (
+            <section className="parsed-preview-section">
+              <h3>
+                Parsed Preview ({parsedUploadTransactions.length.toLocaleString("en-US")} rows intended for import)
+              </h3>
+              <div className="transactions-grid-wrap transactions-grid-scroll">
+                <table className="transactions-grid">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Category</th>
+                      <th>Amount</th>
+                      <th>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedUploadTransactions.map((transaction, index) => (
+                      <tr
+                        key={`${transaction.Date}-${transaction.Description}-${transaction.Amount}-${transaction.Type}-${index}`}
+                      >
+                        <td>{transaction.Date}</td>
+                        <td>{transaction.Description}</td>
+                        <td>{transaction.Category}</td>
+                        <td>{formatCurrency(transaction.Amount)}</td>
+                        <td>{transaction.Type}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
         </section>
       )}
