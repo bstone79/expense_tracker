@@ -31,7 +31,7 @@ type StatementType = "Credit Card" | "Bank";
 type TransactionSortKey = "date" | "description" | "category" | "amount" | "type";
 type SortDirection = "asc" | "desc";
 type AppView = "Dashboard" | "Transactions" | "Upload";
-type UploadProcessingState = "idle" | "extracting-pdf" | "parsing";
+type UploadProcessingState = "idle" | "extracting-pdf" | "parsing" | "appending";
 type ParsedUploadTransaction = {
   Date: string;
   Description: string;
@@ -43,6 +43,7 @@ type UploadPreviewRow = ParsedUploadTransaction & {
   rowId: string;
   include: boolean;
   isDuplicate: boolean;
+  appendStatus: "pending" | "appended";
 };
 const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
 const UPLOAD_CATEGORY_OPTIONS = [
@@ -161,6 +162,7 @@ function App() {
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [selectedStatementType, setSelectedStatementType] = useState<StatementType | "">("");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [uploadProcessingState, setUploadProcessingState] = useState<UploadProcessingState>("idle");
   const [extractedPdfTextLength, setExtractedPdfTextLength] = useState<number>(0);
   const [parsedUploadTransactions, setParsedUploadTransactions] = useState<UploadPreviewRow[]>([]);
@@ -386,7 +388,7 @@ function App() {
     return keys;
   }, [transactions]);
   const includedParsedRowsCount = useMemo(
-    () => parsedUploadTransactions.filter((row) => row.include).length,
+    () => parsedUploadTransactions.filter((row) => row.include && row.appendStatus !== "appended").length,
     [parsedUploadTransactions],
   );
   const duplicateParsedRowsCount = useMemo(
@@ -473,6 +475,7 @@ function App() {
     if (!file) {
       setSelectedUploadFile(null);
       setUploadError(null);
+      setUploadSuccess(null);
       setUploadProcessingState("idle");
       setExtractedPdfTextLength(0);
       setParsedUploadTransactions([]);
@@ -483,6 +486,7 @@ function App() {
     if (validationError) {
       setSelectedUploadFile(null);
       setUploadError(validationError);
+      setUploadSuccess(null);
       setUploadProcessingState("idle");
       setExtractedPdfTextLength(0);
       setParsedUploadTransactions([]);
@@ -491,6 +495,7 @@ function App() {
 
     setSelectedUploadFile(file);
     setUploadError(null);
+    setUploadSuccess(null);
     setExtractedPdfTextLength(0);
     setParsedUploadTransactions([]);
     setUploadProcessingState("idle");
@@ -526,6 +531,7 @@ function App() {
     }
 
     setUploadError(null);
+    setUploadSuccess(null);
     setParsedUploadTransactions([]);
     setExtractedPdfTextLength(0);
 
@@ -597,6 +603,7 @@ function App() {
           rowId: `${duplicateKey}-${index}`,
           include: !isDuplicate,
           isDuplicate,
+          appendStatus: "pending" as const,
         };
       });
 
@@ -632,14 +639,75 @@ function App() {
 
   function handleUploadRowInclusionChange(rowId: string, include: boolean): void {
     setParsedUploadTransactions((current) =>
-      current.map((row) => (row.rowId === rowId ? { ...row, include } : row)),
+      current.map((row) => (row.rowId === rowId && row.appendStatus !== "appended" ? { ...row, include } : row)),
     );
   }
 
   function handleUploadCategoryChange(rowId: string, category: string): void {
     setParsedUploadTransactions((current) =>
-      current.map((row) => (row.rowId === rowId ? { ...row, Category: category } : row)),
+      current.map((row) =>
+        row.rowId === rowId && row.appendStatus !== "appended" ? { ...row, Category: category } : row,
+      ),
     );
+  }
+
+  async function handleConfirmAppend(): Promise<void> {
+    const rowsToAppend = parsedUploadTransactions
+      .filter((row) => row.include && row.appendStatus !== "appended")
+      .map((row) => ({
+        Date: row.Date,
+        Description: row.Description,
+        Category: row.Category,
+        Amount: row.Amount,
+        Type: row.Type,
+      }));
+
+    if (rowsToAppend.length === 0) {
+      setUploadError("Select at least one row to append before confirming.");
+      setUploadSuccess(null);
+      return;
+    }
+
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploadProcessingState("appending");
+
+    try {
+      const response = await fetch("/api/append-transactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          transactions: rowsToAppend,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        appendedCount?: number;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to append selected rows.");
+      }
+
+      const appendedCount =
+        typeof payload.appendedCount === "number" && Number.isFinite(payload.appendedCount)
+          ? payload.appendedCount
+          : rowsToAppend.length;
+      setUploadSuccess(
+        `Appended ${appendedCount.toLocaleString("en-US")} row${appendedCount === 1 ? "" : "s"} to CSV. Data refresh is the next step.`,
+      );
+      setParsedUploadTransactions((current) =>
+        current.map((row) => (row.include && row.appendStatus !== "appended" ? { ...row, appendStatus: "appended" } : row)),
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to append selected rows.";
+      setUploadError(message);
+      setUploadSuccess(null);
+    } finally {
+      setUploadProcessingState("idle");
+    }
   }
 
   if (loading) {
@@ -1037,6 +1105,7 @@ function App() {
               onChange={(event) => {
                 setSelectedStatementType(event.target.value as StatementType | "");
                 setUploadError(null);
+                setUploadSuccess(null);
                 setParsedUploadTransactions([]);
               }}
             >
@@ -1071,6 +1140,7 @@ function App() {
           </div>
 
           {uploadError && <p className="filter-warning">{uploadError}</p>}
+          {uploadSuccess && <p className="upload-status success">{uploadSuccess}</p>}
 
           {selectedUploadFile ? (
             <div className="upload-file-summary">
@@ -1097,11 +1167,12 @@ function App() {
                 </p>
               )}
               {uploadProcessingState === "parsing" && <p className="upload-status">Parsing statement with Gemini...</p>}
+              {uploadProcessingState === "appending" && <p className="upload-status">Appending accepted rows to CSV...</p>}
               <div className="upload-file-actions">
                 <button
                   type="button"
                   className="reset-filters-btn"
-                  disabled={uploadProcessingState === "extracting-pdf" || uploadProcessingState === "parsing"}
+                  disabled={uploadProcessingState !== "idle"}
                   onClick={() => void handleParseStatement()}
                 >
                   Parse Statement
@@ -1132,6 +1203,7 @@ function App() {
                       <th>Category</th>
                       <th>Amount</th>
                       <th>Type</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1145,6 +1217,7 @@ function App() {
                             <button
                               type="button"
                               className={`upload-preview-action-btn${transaction.include ? " active" : ""}`}
+                              disabled={transaction.appendStatus === "appended"}
                               onClick={() => handleUploadRowInclusionChange(transaction.rowId, true)}
                             >
                               Accept
@@ -1152,6 +1225,7 @@ function App() {
                             <button
                               type="button"
                               className={`upload-preview-action-btn${!transaction.include ? " active" : ""}`}
+                              disabled={transaction.appendStatus === "appended"}
                               onClick={() => handleUploadRowInclusionChange(transaction.rowId, false)}
                             >
                               Decline
@@ -1164,6 +1238,7 @@ function App() {
                           <select
                             className="upload-preview-category-select"
                             value={transaction.Category}
+                            disabled={transaction.appendStatus === "appended"}
                             onChange={(event) => handleUploadCategoryChange(transaction.rowId, event.target.value)}
                           >
                             {UPLOAD_CATEGORY_OPTIONS.map((category) => (
@@ -1175,10 +1250,29 @@ function App() {
                         </td>
                         <td>{formatCurrency(transaction.Amount)}</td>
                         <td>{transaction.Type}</td>
+                        <td>
+                          {transaction.appendStatus === "appended" ? (
+                            <span className="upload-preview-status upload-preview-status-appended">Appended</span>
+                          ) : transaction.include ? (
+                            <span className="upload-preview-status upload-preview-status-pending">Accepted</span>
+                          ) : (
+                            <span className="upload-preview-status upload-preview-status-declined">Declined</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="upload-file-actions">
+                <button
+                  type="button"
+                  className="reset-filters-btn"
+                  disabled={uploadProcessingState !== "idle" || includedParsedRowsCount === 0}
+                  onClick={() => void handleConfirmAppend()}
+                >
+                  Confirm & Append Included Rows
+                </button>
               </div>
             </section>
           )}

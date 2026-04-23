@@ -452,6 +452,11 @@ h2 {
   cursor: pointer;
 }
 
+.upload-preview-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .upload-preview-action-btn.active {
   border-color: #1d4ed8;
   background: #dbeafe;
@@ -468,10 +473,39 @@ h2 {
   background: #fff;
 }
 
+.upload-preview-category-select:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .upload-preview-duplicate-row td {
   background: #fff7ed;
 }
 
 .upload-preview-excluded-row td {
   opacity: 0.7;
+}
+
+.upload-preview-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.upload-preview-status-pending {
+  color: #1e3a8a;
+  background: #dbeafe;
+}
+
+.upload-preview-status-declined {
+  color: #92400e;
+  background: #ffedd5;
+}
+
+.upload-preview-status-appended {
+  color: #14532d;
+  background: #dcfce7;
 }
