@@ -695,9 +695,26 @@ function App() {
         typeof payload.appendedCount === "number" && Number.isFinite(payload.appendedCount)
           ? payload.appendedCount
           : rowsToAppend.length;
-      setUploadSuccess(
-        `Appended ${appendedCount.toLocaleString("en-US")} row${appendedCount === 1 ? "" : "s"} to CSV. Data refresh is the next step.`,
-      );
+
+      try {
+        const refreshedData = await loadExpenseData();
+        setTransactions(refreshedData.transactions);
+        setMalformedRows(refreshedData.malformedRows);
+        setMalformedRowsCount(refreshedData.malformedRowsCount);
+        setIntentionallySkippedRows(refreshedData.intentionallySkippedRows);
+        setError(null);
+        setUploadSuccess(
+          `Appended ${appendedCount.toLocaleString("en-US")} row${appendedCount === 1 ? "" : "s"} to CSV and refreshed app data.`,
+        );
+      } catch (refreshError) {
+        const refreshMessage =
+          refreshError instanceof Error ? refreshError.message : "Unknown refresh error after append.";
+        setUploadSuccess(
+          `Appended ${appendedCount.toLocaleString("en-US")} row${appendedCount === 1 ? "" : "s"} to CSV.`,
+        );
+        setUploadError(`Rows were appended, but data refresh failed: ${refreshMessage}`);
+      }
+
       setParsedUploadTransactions((current) =>
         current.map((row) => (row.include && row.appendStatus !== "appended" ? { ...row, appendStatus: "appended" } : row)),
       );

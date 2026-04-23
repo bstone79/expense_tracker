@@ -2,6 +2,7 @@ import express from "express";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import Papa from "papaparse";
 
 const REQUIRED_COLUMNS = ["Date", "Description", "Category", "Amount", "Type"];
 const HEADER_ROW = REQUIRED_COLUMNS.join(",");
@@ -44,15 +45,6 @@ function isValidMmDdYyyy(value) {
     date.getMonth() === month - 1 &&
     date.getDate() === day
   );
-}
-
-function escapeCsvCell(value) {
-  const asString = String(value ?? "");
-  if (asString.includes(",") || asString.includes('"') || asString.includes("\n")) {
-    return `"${asString.replaceAll('"', '""')}"`;
-  }
-
-  return asString;
 }
 
 function formatAmount(value) {
@@ -184,6 +176,11 @@ async function ensureCsvHasHeader() {
   if (firstLine !== HEADER_ROW) {
     throw new Error(`CSV header mismatch at ${CSV_PATH}. Expected: ${HEADER_ROW}`);
   }
+
+  return {
+    newline: csvText.includes("\r\n") ? "\r\n" : "\n",
+    hasTrailingNewline: csvText.endsWith("\n"),
+  };
 }
 
 app.post("/api/append-transactions", async (req, res) => {
@@ -202,21 +199,23 @@ app.post("/api/append-transactions", async (req, res) => {
   }
 
   try {
-    await ensureCsvHasHeader();
+    const csvFormat = await ensureCsvHasHeader();
 
-    const rows = transactions.map((txn) =>
-      [
-        String(txn.Date).trim(),
-        String(txn.Description).trim(),
-        String(txn.Category).trim(),
-        formatAmount(txn.Amount),
-        String(txn.Type).trim(),
-      ]
-        .map(escapeCsvCell)
-        .join(","),
-    );
+    const rows = transactions.map((txn) => ({
+      Date: String(txn.Date).trim(),
+      Description: String(txn.Description).trim(),
+      Category: String(txn.Category).trim(),
+      Amount: formatAmount(txn.Amount),
+      Type: String(txn.Type).trim(),
+    }));
+    const serializedRows = Papa.unparse(rows, {
+      columns: REQUIRED_COLUMNS,
+      header: false,
+      newline: csvFormat.newline,
+    });
 
-    const payload = `\n${rows.join("\n")}`;
+    const prefix = csvFormat.hasTrailingNewline ? "" : csvFormat.newline;
+    const payload = `${prefix}${serializedRows}`;
     await fs.appendFile(CSV_PATH, payload, "utf8");
 
     return res.status(200).json({
