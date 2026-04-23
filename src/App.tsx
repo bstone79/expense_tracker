@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import {
   Bar,
   BarChart,
@@ -28,6 +28,7 @@ import {
 type TypeFilter = "All" | "Credit Card" | "Bank";
 type TransactionSortKey = "date" | "description" | "category" | "amount" | "type";
 type SortDirection = "asc" | "desc";
+type AppView = "Dashboard" | "Transactions" | "Upload";
 const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
 const TRANSACTIONS_PAGE_SIZE = 25;
 
@@ -117,9 +118,14 @@ function App() {
     key: "date",
     direction: "desc",
   });
+  const [activeView, setActiveView] = useState<AppView>("Dashboard");
   const [transactionsPage, setTransactionsPage] = useState(1);
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploadDragActive, setIsUploadDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -398,6 +404,44 @@ function App() {
     setTypeFilter("All");
   }
 
+  function validateUploadFile(file: File): string | null {
+    const fileName = file.name.trim();
+    const extension = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".")).toLowerCase() : "";
+    if (extension !== ".csv" && extension !== ".pdf") {
+      return "Please select a .csv or .pdf statement file.";
+    }
+    return null;
+  }
+
+  function handleUploadFileSelection(file: File | null): void {
+    if (!file) {
+      setSelectedUploadFile(null);
+      setUploadError(null);
+      return;
+    }
+    const validationError = validateUploadFile(file);
+    if (validationError) {
+      setSelectedUploadFile(null);
+      setUploadError(validationError);
+      return;
+    }
+    setSelectedUploadFile(file);
+    setUploadError(null);
+  }
+
+  function handleUploadInputChange(event: ChangeEvent<HTMLInputElement>): void {
+    const selectedFile = event.target.files?.[0] ?? null;
+    handleUploadFileSelection(selectedFile);
+    event.target.value = "";
+  }
+
+  function handleUploadDrop(event: DragEvent<HTMLDivElement>): void {
+    event.preventDefault();
+    setIsUploadDragActive(false);
+    const droppedFile = event.dataTransfer.files?.[0] ?? null;
+    handleUploadFileSelection(droppedFile);
+  }
+
   if (loading) {
     return <main className="app">Loading expense data...</main>;
   }
@@ -419,347 +463,422 @@ function App() {
       <h1>Expenses Tracker</h1>
       <p className="subtitle">Local read-only dashboard from expense_data.csv</p>
 
-      <section className="card filter-bar">
-        <h2>Filters</h2>
-        <div className="filter-grid">
-          <label className="filter-field">
-            <span>Start Date</span>
-            <input
-              type="date"
-              value={formatDateInputValue(startDateFilter)}
-              onChange={(event) => handleStartDateChange(event.target.value)}
-            />
-          </label>
-          <label className="filter-field">
-            <span>End Date</span>
-            <input
-              type="date"
-              value={formatDateInputValue(endDateFilter)}
-              onChange={(event) => handleEndDateChange(event.target.value)}
-            />
-          </label>
-          <label className="filter-field">
-            <span>Payment Type</span>
-            <select value={typeFilter} onChange={(event) => handleTypeFilterChange(event.target.value as TypeFilter)}>
-              <option value="All">All</option>
-              <option value="Credit Card">Credit Card</option>
-              <option value="Bank">Bank</option>
-            </select>
-          </label>
-          <button type="button" className="reset-filters-btn" onClick={resetFilters}>
-            Reset Filters
+      <nav className="view-tabs" aria-label="Primary views">
+        {(["Dashboard", "Transactions", "Upload"] as const).map((view) => (
+          <button
+            key={view}
+            type="button"
+            className={`view-tab-btn${activeView === view ? " active" : ""}`}
+            onClick={() => setActiveView(view)}
+          >
+            {view}
           </button>
-        </div>
-        <fieldset className="category-filter-list">
-          <legend>Categories</legend>
-          <div className="category-filter-options">
-            {allCategories.map((category) => (
-              <label key={category} className="category-option">
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.includes(category)}
-                  onChange={() => handleCategoryToggle(category)}
-                />
-                <span>{category}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        {hasInvalidDateRange && (
-          <p className="filter-warning">Start date cannot be after end date. Please adjust the selected range.</p>
-        )}
-      </section>
+        ))}
+      </nav>
 
-      {filteredTransactions.length === 0 && !hasInvalidDateRange && (
+      {activeView !== "Upload" && (
+        <section className="card filter-bar">
+          <h2>Filters</h2>
+          <div className="filter-grid">
+            <label className="filter-field">
+              <span>Start Date</span>
+              <input
+                type="date"
+                value={formatDateInputValue(startDateFilter)}
+                onChange={(event) => handleStartDateChange(event.target.value)}
+              />
+            </label>
+            <label className="filter-field">
+              <span>End Date</span>
+              <input
+                type="date"
+                value={formatDateInputValue(endDateFilter)}
+                onChange={(event) => handleEndDateChange(event.target.value)}
+              />
+            </label>
+            <label className="filter-field">
+              <span>Payment Type</span>
+              <select value={typeFilter} onChange={(event) => handleTypeFilterChange(event.target.value as TypeFilter)}>
+                <option value="All">All</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Bank">Bank</option>
+              </select>
+            </label>
+            <button type="button" className="reset-filters-btn" onClick={resetFilters}>
+              Reset Filters
+            </button>
+          </div>
+          <fieldset className="category-filter-list">
+            <legend>Categories</legend>
+            <div className="category-filter-options">
+              {allCategories.map((category) => (
+                <label key={category} className="category-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(category)}
+                    onChange={() => handleCategoryToggle(category)}
+                  />
+                  <span>{category}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {hasInvalidDateRange && (
+            <p className="filter-warning">Start date cannot be after end date. Please adjust the selected range.</p>
+          )}
+        </section>
+      )}
+
+      {activeView !== "Upload" && filteredTransactions.length === 0 && !hasInvalidDateRange && (
         <section className="card empty-results-card">
           <h2>No matching transactions</h2>
           <p>Try broadening your filters or use Reset Filters to restore the default range.</p>
         </section>
       )}
 
-      <section className="kpi-grid">
-        <article className="card">
-          <h2>Total Spend</h2>
-          <p className="kpi-value">{formatCurrency(kpis.totalSpend)}</p>
-        </article>
-        <article className="card">
-          <h2>Transactions</h2>
-          <p className="kpi-value">{kpis.transactionCount.toLocaleString("en-US")}</p>
-        </article>
-        <article className="card">
-          <h2>Top Category</h2>
-          <p className="kpi-value">{kpis.topCategory ?? "N/A"}</p>
-        </article>
-        <article className="card">
-          <h2>Avg. Monthly Spend</h2>
-          <p className="kpi-value">{formatCurrency(kpis.avgMonthlySpend)}</p>
-        </article>
-      </section>
+      {activeView === "Dashboard" && (
+        <>
+          <section className="kpi-grid">
+            <article className="card">
+              <h2>Total Spend</h2>
+              <p className="kpi-value">{formatCurrency(kpis.totalSpend)}</p>
+            </article>
+            <article className="card">
+              <h2>Transactions</h2>
+              <p className="kpi-value">{kpis.transactionCount.toLocaleString("en-US")}</p>
+            </article>
+            <article className="card">
+              <h2>Top Category</h2>
+              <p className="kpi-value">{kpis.topCategory ?? "N/A"}</p>
+            </article>
+            <article className="card">
+              <h2>Avg. Monthly Spend</h2>
+              <p className="kpi-value">{formatCurrency(kpis.avgMonthlySpend)}</p>
+            </article>
+          </section>
 
-      <section className="card">
-        <h2>Monthly Spending Trend</h2>
-        <div className="chart-wrap">
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={monthlyTrendWindowed} onClick={handleChartClick}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="month"
-                tickFormatter={formatShortMonthLabel}
-                interval={0}
-                minTickGap={10}
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis tickFormatter={(value) => `$${value}`} />
-              <Tooltip formatter={(value) => formatTooltipAmount(value)} />
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke="#2563eb"
-                strokeWidth={3}
-                dot={{ r: 4, cursor: "pointer" }}
-                activeDot={{ r: 6, cursor: "pointer" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        {isChartWindowed && (
-          <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
-        )}
-        <p className="chart-hint">Click anywhere along a month on the chart to view that month's transactions.</p>
-
-        {selectedMonth && (
-          <section className="drilldown-section">
-            <div className="drilldown-header">
-              <h3>Transactions for {formatMonthLabel(selectedMonth)}</h3>
-              <button type="button" className="drilldown-close-btn" onClick={() => setSelectedMonth(null)}>
-                Close
-              </button>
+          <section className="card">
+            <h2>Monthly Spending Trend</h2>
+            <div className="chart-wrap">
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={monthlyTrendWindowed} onClick={handleChartClick}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={formatShortMonthLabel}
+                    interval={0}
+                    minTickGap={10}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value) => formatTooltipAmount(value)} />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    dot={{ r: 4, cursor: "pointer" }}
+                    activeDot={{ r: 6, cursor: "pointer" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-            {groupedDrilldownRows.length === 0 ? (
-              <p className="chart-hint">No transactions match the current filters for this month.</p>
-            ) : (
-              <div className="transactions-grid-wrap transactions-grid-scroll">
-                <table className="transactions-grid">
-                  <thead>
-                    <tr>
-                      <th aria-label="Expand row"></th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th>Entries</th>
-                      <th>Total Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupedDrilldownRows.map((group) => {
-                      const isExpanded = expandedGroupKeys.includes(group.key);
-                      return (
-                        <Fragment key={group.key}>
-                          <tr className="summary-row">
-                            <td>
-                              <button
-                                type="button"
-                                className="expand-arrow-btn"
-                                aria-label={`${isExpanded ? "Collapse" : "Expand"} ${group.description}`}
-                                aria-expanded={isExpanded}
-                                onClick={() => toggleGroupExpansion(group.key)}
-                              >
-                                {isExpanded ? "▼" : "▶"}
-                              </button>
-                            </td>
-                            <td>{group.description}</td>
-                            <td>{group.categoryLabel}</td>
-                            <td>{group.transactions.length.toLocaleString("en-US")}</td>
-                            <td>{formatCurrency(group.totalAmount)}</td>
-                          </tr>
-                          {isExpanded &&
-                            group.transactions.map((transaction) => (
-                              <tr
-                                key={`${group.key}-${transaction.date.toISOString()}-${transaction.amount}-${transaction.type}`}
-                                className="detail-row"
-                              >
-                                <td></td>
+            {isChartWindowed && (
+              <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
+            )}
+            <p className="chart-hint">Click anywhere along a month on the chart to view that month's transactions.</p>
+
+            {selectedMonth && (
+              <section className="drilldown-section">
+                <div className="drilldown-header">
+                  <h3>Transactions for {formatMonthLabel(selectedMonth)}</h3>
+                  <button type="button" className="drilldown-close-btn" onClick={() => setSelectedMonth(null)}>
+                    Close
+                  </button>
+                </div>
+                {groupedDrilldownRows.length === 0 ? (
+                  <p className="chart-hint">No transactions match the current filters for this month.</p>
+                ) : (
+                  <div className="transactions-grid-wrap transactions-grid-scroll">
+                    <table className="transactions-grid">
+                      <thead>
+                        <tr>
+                          <th aria-label="Expand row"></th>
+                          <th>Description</th>
+                          <th>Category</th>
+                          <th>Entries</th>
+                          <th>Total Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {groupedDrilldownRows.map((group) => {
+                          const isExpanded = expandedGroupKeys.includes(group.key);
+                          return (
+                            <Fragment key={group.key}>
+                              <tr className="summary-row">
                                 <td>
-                                  {transaction.description}
-                                  <div className="detail-meta">
-                                    {formatDateLabel(transaction.date)} | {transaction.category} | {transaction.type}
-                                  </div>
+                                  <button
+                                    type="button"
+                                    className="expand-arrow-btn"
+                                    aria-label={`${isExpanded ? "Collapse" : "Expand"} ${group.description}`}
+                                    aria-expanded={isExpanded}
+                                    onClick={() => toggleGroupExpansion(group.key)}
+                                  >
+                                    {isExpanded ? "▼" : "▶"}
+                                  </button>
                                 </td>
-                                <td>{transaction.category}</td>
-                                <td>1</td>
-                                <td>{formatCurrency(transaction.amount)}</td>
+                                <td>{group.description}</td>
+                                <td>{group.categoryLabel}</td>
+                                <td>{group.transactions.length.toLocaleString("en-US")}</td>
+                                <td>{formatCurrency(group.totalAmount)}</td>
                               </tr>
-                            ))}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              {isExpanded &&
+                                group.transactions.map((transaction) => (
+                                  <tr
+                                    key={`${group.key}-${transaction.date.toISOString()}-${transaction.amount}-${transaction.type}`}
+                                    className="detail-row"
+                                  >
+                                    <td></td>
+                                    <td>
+                                      {transaction.description}
+                                      <div className="detail-meta">
+                                        {formatDateLabel(transaction.date)} | {transaction.category} | {transaction.type}
+                                      </div>
+                                    </td>
+                                    <td>{transaction.category}</td>
+                                    <td>1</td>
+                                    <td>{formatCurrency(transaction.amount)}</td>
+                                  </tr>
+                                ))}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             )}
           </section>
-        )}
-      </section>
 
-      <section className="card">
-        <h2>Spending by Category</h2>
-        <div className="chart-wrap">
-          <ResponsiveContainer width="100%" height={320}>
-            <PieChart>
-              <Pie
-                data={spendByCategory}
-                dataKey="total"
-                nameKey="category"
-                cx="50%"
-                cy="50%"
-                innerRadius={70}
-                outerRadius={110}
-                paddingAngle={2}
-                onClick={(_entry, index) => {
-                  const point = spendByCategory[index];
-                  if (point) {
-                    handleCategorySliceClick(point.category);
-                  }
-                }}
-              >
-                {spendByCategory.map((point, index) => (
-                  <Cell key={point.category} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value, name) => {
-                  const numeric = typeof value === "number" ? value : Number(value);
-                  const percentage =
-                    categorySpendTotal > 0 && Number.isFinite(numeric) ? (numeric / categorySpendTotal) * 100 : 0;
-                  return [`${formatCurrency(numeric)} (${percentage.toFixed(1)}%)`, String(name)];
-                }}
-              />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="chart-hint">Click a slice to filter the dashboard to that category.</p>
-      </section>
-
-      <section className="card">
-        <h2>Monthly Spend by Payment Type</h2>
-        <div className="chart-wrap">
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={monthlySpendByTypeWindowed}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="month"
-                tickFormatter={formatShortMonthLabel}
-                interval={0}
-                minTickGap={10}
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis tickFormatter={(value) => `$${value}`} />
-              <Tooltip formatter={(value) => formatTooltipAmount(value)} />
-              <Legend />
-              <Bar dataKey="creditCardTotal" name="Credit Card" fill="#2563eb" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="bankTotal" name="Bank" fill="#14b8a6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        {isTypeChartWindowed && (
-          <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
-        )}
-      </section>
-
-      <section className="card">
-        <h2>Transactions</h2>
-        <label className="transactions-search-field">
-          <span>Description Search</span>
-          <input
-            type="search"
-            value={descriptionSearchTerm}
-            onChange={(event) => setDescriptionSearchTerm(event.target.value)}
-            placeholder="Search descriptions..."
-          />
-        </label>
-        <div className="transactions-grid-wrap">
-          <table className="transactions-grid">
-            <thead>
-              <tr>
-                <th>
-                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("date")}>
-                    Date {transactionSort.key === "date" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
-                  </button>
-                </th>
-                <th>
-                  <button
-                    type="button"
-                    className="sort-header-btn"
-                    onClick={() => handleTransactionSort("description")}
+          <section className="card">
+            <h2>Spending by Category</h2>
+            <div className="chart-wrap">
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={spendByCategory}
+                    dataKey="total"
+                    nameKey="category"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={110}
+                    paddingAngle={2}
+                    onClick={(_entry, index) => {
+                      const point = spendByCategory[index];
+                      if (point) {
+                        handleCategorySliceClick(point.category);
+                      }
+                    }}
                   >
-                    Description{" "}
-                    {transactionSort.key === "description" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
-                  </button>
-                </th>
-                <th>
-                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("category")}>
-                    Category {transactionSort.key === "category" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
-                  </button>
-                </th>
-                <th>
-                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("amount")}>
-                    Amount {transactionSort.key === "amount" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
-                  </button>
-                </th>
-                <th>
-                  <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("type")}>
-                    Type {transactionSort.key === "type" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedTransactions.length === 0 ? (
+                    {spendByCategory.map((point, index) => (
+                      <Cell key={point.category} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => {
+                      const numeric = typeof value === "number" ? value : Number(value);
+                      const percentage =
+                        categorySpendTotal > 0 && Number.isFinite(numeric) ? (numeric / categorySpendTotal) * 100 : 0;
+                      return [`${formatCurrency(numeric)} (${percentage.toFixed(1)}%)`, String(name)];
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="chart-hint">Click a slice to filter the dashboard to that category.</p>
+          </section>
+
+          <section className="card">
+            <h2>Monthly Spend by Payment Type</h2>
+            <div className="chart-wrap">
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={monthlySpendByTypeWindowed}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={formatShortMonthLabel}
+                    interval={0}
+                    minTickGap={10}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value) => formatTooltipAmount(value)} />
+                  <Legend />
+                  <Bar dataKey="creditCardTotal" name="Credit Card" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="bankTotal" name="Bank" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {isTypeChartWindowed && (
+              <p className="chart-hint">Displaying latest 12 months of the selected filter range.</p>
+            )}
+          </section>
+        </>
+      )}
+
+      {activeView === "Transactions" && (
+        <section className="card">
+          <h2>Transactions</h2>
+          <label className="transactions-search-field">
+            <span>Description Search</span>
+            <input
+              type="search"
+              value={descriptionSearchTerm}
+              onChange={(event) => setDescriptionSearchTerm(event.target.value)}
+              placeholder="Search descriptions..."
+            />
+          </label>
+          <div className="transactions-grid-wrap">
+            <table className="transactions-grid">
+              <thead>
                 <tr>
-                  <td colSpan={5}>No transactions match the current filters.</td>
+                  <th>
+                    <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("date")}>
+                      Date {transactionSort.key === "date" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className="sort-header-btn"
+                      onClick={() => handleTransactionSort("description")}
+                    >
+                      Description{" "}
+                      {transactionSort.key === "description" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("category")}>
+                      Category {transactionSort.key === "category" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("amount")}>
+                      Amount {transactionSort.key === "amount" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="sort-header-btn" onClick={() => handleTransactionSort("type")}>
+                      Type {transactionSort.key === "type" ? (transactionSort.direction === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
                 </tr>
-              ) : (
-                paginatedTransactions.map(({ transaction, sourceIndex }) => (
-                  <tr key={`${sourceIndex}-${transaction.date.toISOString()}-${transaction.amount}`}>
-                    <td>{formatDateLabel(transaction.date)}</td>
-                    <td>{transaction.description}</td>
-                    <td>{transaction.category}</td>
-                    <td>{formatCurrency(transaction.amount)}</td>
-                    <td>{transaction.type}</td>
+              </thead>
+              <tbody>
+                {paginatedTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>No transactions match the current filters.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="transactions-pagination">
-          <p className="chart-hint">
-            Showing {visibleStartIndex.toLocaleString("en-US")}–{visibleEndIndex.toLocaleString("en-US")} of{" "}
-            {sortedTransactions.length.toLocaleString("en-US")}
-          </p>
-          <div className="transactions-page-controls">
-            <button
-              type="button"
-              className="reset-filters-btn"
-              onClick={() => setTransactionsPage((current) => Math.max(1, current - 1))}
-              disabled={currentTransactionsPage === 1}
-            >
-              Previous
-            </button>
-            <span className="chart-hint">
-              Page {currentTransactionsPage.toLocaleString("en-US")} of {totalTransactionPages.toLocaleString("en-US")}
-            </span>
-            <button
-              type="button"
-              className="reset-filters-btn"
-              onClick={() => setTransactionsPage((current) => Math.min(totalTransactionPages, current + 1))}
-              disabled={currentTransactionsPage >= totalTransactionPages}
-            >
-              Next
+                ) : (
+                  paginatedTransactions.map(({ transaction, sourceIndex }) => (
+                    <tr key={`${sourceIndex}-${transaction.date.toISOString()}-${transaction.amount}`}>
+                      <td>{formatDateLabel(transaction.date)}</td>
+                      <td>{transaction.description}</td>
+                      <td>{transaction.category}</td>
+                      <td>{formatCurrency(transaction.amount)}</td>
+                      <td>{transaction.type}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="transactions-pagination">
+            <p className="chart-hint">
+              Showing {visibleStartIndex.toLocaleString("en-US")}–{visibleEndIndex.toLocaleString("en-US")} of{" "}
+              {sortedTransactions.length.toLocaleString("en-US")}
+            </p>
+            <div className="transactions-page-controls">
+              <button
+                type="button"
+                className="reset-filters-btn"
+                onClick={() => setTransactionsPage((current) => Math.max(1, current - 1))}
+                disabled={currentTransactionsPage === 1}
+              >
+                Previous
+              </button>
+              <span className="chart-hint">
+                Page {currentTransactionsPage.toLocaleString("en-US")} of {totalTransactionPages.toLocaleString("en-US")}
+              </span>
+              <button
+                type="button"
+                className="reset-filters-btn"
+                onClick={() => setTransactionsPage((current) => Math.min(totalTransactionPages, current + 1))}
+                disabled={currentTransactionsPage >= totalTransactionPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeView === "Upload" && (
+        <section className="card upload-card">
+          <h2>Upload Statement</h2>
+          <p className="chart-hint">Upload a statement file in CSV or PDF format.</p>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            className="upload-file-input"
+            accept=".csv,.pdf,application/pdf,text/csv"
+            onChange={handleUploadInputChange}
+          />
+          <div
+            className={`upload-dropzone${isUploadDragActive ? " drag-active" : ""}`}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsUploadDragActive(true);
+            }}
+            onDragLeave={(event) => {
+              event.preventDefault();
+              setIsUploadDragActive(false);
+            }}
+            onDrop={handleUploadDrop}
+          >
+            <p>Drag and drop a statement here, or choose a file.</p>
+            <button type="button" className="reset-filters-btn" onClick={() => uploadInputRef.current?.click()}>
+              Choose File
             </button>
           </div>
-        </div>
-      </section>
+
+          {uploadError && <p className="filter-warning">{uploadError}</p>}
+
+          {selectedUploadFile ? (
+            <div className="upload-file-summary">
+              <p>
+                <strong>Selected file:</strong> {selectedUploadFile.name}
+              </p>
+              <p>
+                <strong>Size:</strong> {(selectedUploadFile.size / 1024).toFixed(1)} KB
+              </p>
+              <div className="upload-file-actions">
+                <button type="button" className="reset-filters-btn" onClick={() => uploadInputRef.current?.click()}>
+                  Replace File
+                </button>
+                <button type="button" className="reset-filters-btn" onClick={() => handleUploadFileSelection(null)}>
+                  Remove File
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="chart-hint">No file selected.</p>
+          )}
+        </section>
+      )}
 
       {(malformedRowsCount > 0 || intentionallySkippedRows > 0) && (
         <section className="card warning-card">
