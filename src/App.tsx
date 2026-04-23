@@ -39,7 +39,21 @@ type ParsedUploadTransaction = {
   Amount: number;
   Type: StatementType;
 };
+type UploadPreviewRow = ParsedUploadTransaction & {
+  rowId: string;
+  include: boolean;
+  isDuplicate: boolean;
+};
 const CATEGORY_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
+const UPLOAD_CATEGORY_OPTIONS = [
+  "Groceries",
+  "Utilities",
+  "Entertainment",
+  "Transportation",
+  "Housing",
+  "Dining",
+  "Shopping",
+] as const;
 const TRANSACTIONS_PAGE_SIZE = 25;
 
 function formatTooltipAmount(
@@ -120,6 +134,12 @@ function getUploadFileExtension(fileName: string): string {
   return trimmed.slice(trimmed.lastIndexOf(".")).toLowerCase();
 }
 
+function buildUploadDuplicateKey(date: string, description: string, amount: number): string {
+  const normalizedAmount = Number(amount);
+  const normalizedAmountLabel = Number.isFinite(normalizedAmount) ? normalizedAmount.toFixed(2) : "invalid";
+  return `${date.trim()}|${normalizeDescription(description)}|${normalizedAmountLabel}`;
+}
+
 function App() {
   const [transactions, setTransactions] = useState<ExpenseTransaction[]>([]);
   const [startDateFilter, setStartDateFilter] = useState<Date | null>(null);
@@ -143,7 +163,7 @@ function App() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProcessingState, setUploadProcessingState] = useState<UploadProcessingState>("idle");
   const [extractedPdfTextLength, setExtractedPdfTextLength] = useState<number>(0);
-  const [parsedUploadTransactions, setParsedUploadTransactions] = useState<ParsedUploadTransaction[]>([]);
+  const [parsedUploadTransactions, setParsedUploadTransactions] = useState<UploadPreviewRow[]>([]);
   const [isUploadDragActive, setIsUploadDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -358,6 +378,21 @@ function App() {
       }))
       .sort((a, b) => a.description.localeCompare(b.description, "en-US"));
   }, [selectedMonthTransactions]);
+  const existingTransactionDuplicateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const transaction of transactions) {
+      keys.add(buildUploadDuplicateKey(formatDateLabel(transaction.date), transaction.description, transaction.amount));
+    }
+    return keys;
+  }, [transactions]);
+  const includedParsedRowsCount = useMemo(
+    () => parsedUploadTransactions.filter((row) => row.include).length,
+    [parsedUploadTransactions],
+  );
+  const duplicateParsedRowsCount = useMemo(
+    () => parsedUploadTransactions.filter((row) => row.isDuplicate).length,
+    [parsedUploadTransactions],
+  );
 
   useEffect(() => {
     if (selectedMonth && !transactionsByMonth.has(selectedMonth)) {
@@ -553,8 +588,20 @@ function App() {
       }
 
       const rows = Array.isArray(payload.transactions) ? payload.transactions : [];
-      setParsedUploadTransactions(rows);
-      if (rows.length === 0) {
+      const previewRows = rows.map((row, index) => {
+        const duplicateKey = buildUploadDuplicateKey(row.Date, row.Description, row.Amount);
+        const isDuplicate = existingTransactionDuplicateKeys.has(duplicateKey);
+        return {
+          ...row,
+          Category: row.Category.trim(),
+          rowId: `${duplicateKey}-${index}`,
+          include: !isDuplicate,
+          isDuplicate,
+        };
+      });
+
+      setParsedUploadTransactions(previewRows);
+      if (previewRows.length === 0) {
         setUploadError("No spending transactions were returned for this statement.");
       }
     } catch (err) {
@@ -581,6 +628,18 @@ function App() {
     setIsUploadDragActive(false);
     const droppedFile = event.dataTransfer.files?.[0] ?? null;
     void handleUploadFileSelection(droppedFile);
+  }
+
+  function handleUploadRowInclusionChange(rowId: string, include: boolean): void {
+    setParsedUploadTransactions((current) =>
+      current.map((row) => (row.rowId === rowId ? { ...row, include } : row)),
+    );
+  }
+
+  function handleUploadCategoryChange(rowId: string, category: string): void {
+    setParsedUploadTransactions((current) =>
+      current.map((row) => (row.rowId === rowId ? { ...row, Category: category } : row)),
+    );
   }
 
   if (loading) {
@@ -1058,10 +1117,16 @@ function App() {
               <h3>
                 Parsed Preview ({parsedUploadTransactions.length.toLocaleString("en-US")} rows intended for import)
               </h3>
+              <p className="chart-hint">
+                Included rows: {includedParsedRowsCount.toLocaleString("en-US")} of{" "}
+                {parsedUploadTransactions.length.toLocaleString("en-US")} | Potential duplicates:{" "}
+                {duplicateParsedRowsCount.toLocaleString("en-US")} (excluded by default)
+              </p>
               <div className="transactions-grid-wrap transactions-grid-scroll">
                 <table className="transactions-grid">
                   <thead>
                     <tr>
+                      <th>Include</th>
                       <th>Date</th>
                       <th>Description</th>
                       <th>Category</th>
@@ -1070,13 +1135,44 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {parsedUploadTransactions.map((transaction, index) => (
+                    {parsedUploadTransactions.map((transaction) => (
                       <tr
-                        key={`${transaction.Date}-${transaction.Description}-${transaction.Amount}-${transaction.Type}-${index}`}
+                        key={transaction.rowId}
+                        className={`${transaction.isDuplicate ? "upload-preview-duplicate-row" : ""}${transaction.include ? "" : " upload-preview-excluded-row"}`}
                       >
+                        <td>
+                          <div className="upload-preview-actions">
+                            <button
+                              type="button"
+                              className={`upload-preview-action-btn${transaction.include ? " active" : ""}`}
+                              onClick={() => handleUploadRowInclusionChange(transaction.rowId, true)}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              type="button"
+                              className={`upload-preview-action-btn${!transaction.include ? " active" : ""}`}
+                              onClick={() => handleUploadRowInclusionChange(transaction.rowId, false)}
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        </td>
                         <td>{transaction.Date}</td>
                         <td>{transaction.Description}</td>
-                        <td>{transaction.Category}</td>
+                        <td>
+                          <select
+                            className="upload-preview-category-select"
+                            value={transaction.Category}
+                            onChange={(event) => handleUploadCategoryChange(transaction.rowId, event.target.value)}
+                          >
+                            {UPLOAD_CATEGORY_OPTIONS.map((category) => (
+                              <option key={category} value={category}>
+                                {category}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
                         <td>{formatCurrency(transaction.Amount)}</td>
                         <td>{transaction.Type}</td>
                       </tr>

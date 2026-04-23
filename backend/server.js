@@ -169,6 +169,9 @@ function buildGeminiPrompt({ statementType, statementText }) {
     "4) Amount must be a positive number (no currency symbol).",
     "5) Category must be exactly one of: Groceries, Utilities, Entertainment, Transportation, Housing, Dining, Shopping.",
     `6) Type must be exactly "${statementType}" for every row.`,
+    "7) Be exhaustive: include every spend/debit transaction line that qualifies under these rules.",
+    "8) Do not omit rows because the merchant or category is uncertain; choose the closest allowed category.",
+    "9) If multiple transactions occur on the same date with similar descriptions, keep them as separate rows.",
     "",
     "Statement text to parse:",
     statementText,
@@ -263,6 +266,7 @@ app.post("/api/parse-statement", async (req, res) => {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: "application/json",
+            temperature: 0,
           },
         }),
       },
