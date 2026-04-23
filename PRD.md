@@ -94,7 +94,7 @@ The application should reference a single, configurable path to the CSV file on 
 
 4. Tech Stack
    Based on the existing repository, the confirmed tech stack is:
-   LayerTechnologyStatusFrameworkReact 18+✅ In useLanguageTypeScript✅ In useBuild ToolVite✅ In useChartingRecharts✅ In use (LineChart)CSV ParsingPapaParse✅ In useStylingCSS (App.css / index.css)✅ In useStatement ParsingDeterministic parser rules (regex/template-based)🔲 To be addedLocal BackendNode.js + Express🔲 To be added (required for upload feature)PDF Extractionpdfjs-dist🔲 To be added
+   LayerTechnologyStatusFrameworkReact 18+✅ In useLanguageTypeScript✅ In useBuild ToolVite✅ In useChartingRecharts✅ In use (LineChart)CSV ParsingPapaParse✅ In useStylingCSS (App.css / index.css)✅ In useStatement ParsingGemini API (Google)🔲 To be addedLocal BackendNode.js + Express🔲 To be added (required for upload feature)PDF Extractionpdfjs-dist🔲 To be added
 
 5. Application Structure
    5.1 Layout
@@ -194,9 +194,11 @@ For local-only use, the CSV path can be served via a simple Express or Vite stat
    7.1 Upload Flow
 
 User navigates to the Upload view
+User selects statement type (Bank or Credit Card)
 User selects or drags-and-drops a statement file (PDF or CSV)
 The app displays a preview of the extracted/parsed transactions before committing
-User reviews the mapped data, confirms, and the rows are appended to the CSV
+User reviews parsed rows and accepts/declines individual rows, with category edits available before confirm
+User confirms accepted rows and the rows are appended to the CSV
 The Dashboard and Transactions views refresh to include the new data
 
 7.2 Supported Statement Formats (MVP)
@@ -204,14 +206,13 @@ The Dashboard and Transactions views refresh to include the new data
 Credit Card statement — PDF or CSV export from a major issuer (e.g., Chase, Citi, Amex)
 Bank statement — PDF or CSV export from a major bank (e.g., Chase, Bank of America)
 
-7.3 Parsing Strategy — Deterministic Template Parsing
-For MVP, the user will upload statements from one known bank format and one known credit card format. The application should use deterministic parser rules to map uploaded statement content to the standard schema.
+7.3 Parsing Strategy — Gemini API Integration
+For MVP, the application should use the Gemini API to parse uploaded statement content and map it to the standard schema. The user must explicitly select whether the statement is Bank or Credit Card before parsing.
 Flow:
 
 If the uploaded file is a PDF, extract text client-side using a library such as pdf.js or pdfjs-dist
 If the uploaded file is a CSV, read it as plain text
-Run parser selection logic to identify the known statement template (Bank or Credit Card) and route to the correct parser
-Apply deterministic extraction rules (e.g., regex and line-pattern matching) to:
+Send the extracted text and selected statement type to the Gemini API with a structured prompt instructing it to:
 
 Identify transaction rows
 Extract date, description, and amount
@@ -222,12 +223,14 @@ Return results as a JSON array matching the CSV schema
 Display the returned transactions in a preview table before the user confirms
 On confirmation, serialize the transactions back to CSV rows and append to expense_data.csv via a local file write (requires a small local Node/Express backend endpoint)
 
-Deterministic Parsing Requirements:
+Prompt and Output Requirements:
 
-Parser logic must enforce the target schema: { Date, Description, Category, Amount, Type }
+The prompt must include the user-selected statement type (Bank or Credit Card)
+The prompt must instruct the model to return only valid JSON (no markdown fences)
+The prompt must enforce the target schema: { Date, Description, Category, Amount, Type }
 Date format must be normalized to MM/DD/YYYY in the output
 Amounts must be positive numbers (credits/refunds may be excluded or flagged)
-If the uploaded statement does not match a supported template, the app must show a clear unsupported-format error and block append
+The preview UI must allow row-level accept/decline and category edits before append
 
 7.4 Duplicate Detection
 Before appending, the app should check for potential duplicates based on matching Date + Description + Amount. If duplicates are found, they should be highlighted in the preview table and the user should have the option to exclude them before confirming.
@@ -237,7 +240,7 @@ Because browser-based JavaScript cannot write to the local filesystem directly, 
 POST /api/append-transactions — accepts an array of transaction objects, validates the schema, and appends them to the CSV file
 
 8. Non-Functional Requirements
-   RequirementDetailPerformanceDashboard should load and render within 2 seconds for the full 1,592-row datasetLocal-onlyNo data should be sent to any external service for statement parsing in MVPPrivacyStatement parsing should run locally using deterministic parser rulesResilienceMalformed rows in the CSV should be skipped with a warning, not crash the appResponsivenessApplication should be usable on a standard desktop browser at 1280px+ width; mobile is not required for MVP
+   RequirementDetailPerformanceDashboard should load and render within 2 seconds for the full 1,592-row datasetLocal-onlyNo data should be sent to any external service except the Gemini API (for statement parsing only)PrivacyThe Gemini API call for statement parsing should use minimal data retention settings if availableResilienceMalformed rows in the CSV should be skipped with a warning, not crash the appResponsivenessApplication should be usable on a standard desktop browser at 1280px+ width; mobile is not required for MVP
 
 9. Out of Scope for MVP
    The following features are explicitly deferred to future versions:
@@ -259,9 +262,13 @@ CSV path strategy
 - Use `public/expense_data.csv` as the locked MVP source path.
 - Runtime reads should fetch this file so app data can refresh without rebuild.
 
-Statement parser strategy
-- For MVP, parsing should use deterministic parser rules for known Bank and Credit Card statement templates.
-- Gemini API integration is deferred and not required for current MVP scope.
+Gemini API key handling
+- API key must be stored only in backend environment variables.
+- Frontend must never directly receive or store the Gemini API key.
+
+Statement type selection before parsing
+- User must choose Bank or Credit Card statement type before parsing begins.
+- Selected statement type must be passed to Gemini and reflected in parsing behavior.
 
 PDF extraction failure behavior
 - If uploaded PDF text extraction fails (for example, scanned/image PDFs), show a clear error message and require CSV upload instead.

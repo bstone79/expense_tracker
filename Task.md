@@ -3,15 +3,15 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 5 - Upload Feature
-- Current Task (one only): Implement deterministic parser routing + categorization for known statement formats
+- Current Task (one only): Implement Gemini parsing + categorization integration with user-selected statement type
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks), Phase 3 complete (7 of 7 tasks), Phase 4 complete (3 of 3 tasks)
-- Next Task: Build preview table with duplicate highlighting
+- Next Task: Build preview table with accept/decline controls, duplicate highlighting, and category editing
 - Blockers: None
 
 ## Locked Decisions
 
 - CSV path for MVP: `public/expense_data.csv`
-- Parsing strategy for known statement formats: deterministic parser rules (no Gemini dependency)
+- Parsing strategy for MVP: Gemini-based parsing with explicit user-selected statement type (Bank or Credit Card)
 - PDF extraction failure: show error and require CSV upload
 - Upload preview: allow category edits before confirm
 - Duplicate default behavior: exclude detected duplicates by default
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 5 - Upload Feature: Implement deterministic parser routing + categorization integration
+- [ ] Phase 5 - Upload Feature: Implement Gemini parsing + categorization integration with user-selected statement type
 
 ## Next
 
-- [ ] Phase 5 - Upload Feature: Build preview table with duplicate highlighting
+- [ ] Phase 5 - Upload Feature: Build preview table with accept/decline controls, duplicate highlighting, and category editing
 
 ## Backlog by Phase
 
@@ -69,8 +69,8 @@ Project Task Tracker
 - [x] Set up local Express server with `POST /api/append-transactions`
 - [x] Build Upload view (drag/drop + file picker)
 - [x] Implement PDF text extraction (`pdfjs-dist`)
-- [ ] Implement deterministic parser routing + categorization integration
-- [ ] Build preview table with duplicate highlighting
+- [ ] Implement Gemini parsing + categorization integration with user-selected statement type
+- [ ] Build preview table with accept/decline controls, duplicate highlighting, and category editing
 - [ ] Wire confirm-and-append flow to backend
 - [ ] Refresh app data after successful upload
 
