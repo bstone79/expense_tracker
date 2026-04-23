@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 5 - Upload Feature
-- Current Task (one only): Wire confirm-and-append flow to backend
+- Current Task (one only): Refresh app data after successful upload
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks), Phase 3 complete (7 of 7 tasks), Phase 4 complete (3 of 3 tasks)
-- Next Task: Refresh app data after successful upload
+- Next Task: Improve error handling (API errors, malformed statements, upload failures)
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 5 - Upload Feature: Wire confirm-and-append flow to backend
+- [ ] Phase 5 - Upload Feature: Refresh app data after successful upload
 
 ## Next
 
-- [ ] Phase 5 - Upload Feature: Refresh app data after successful upload
+- [ ] Phase 6 - Polish: Improve error handling (API errors, malformed statements, upload failures)
 
 ## Backlog by Phase
 
@@ -71,12 +71,13 @@ Project Task Tracker
 - [x] Implement PDF text extraction (`pdfjs-dist`)
 - [x] Implement Gemini parsing + categorization integration with user-selected statement type
 - [x] Build preview table with accept/decline controls, duplicate highlighting, and category editing
-- [ ] Wire confirm-and-append flow to backend
+- [x] Wire confirm-and-append flow to backend
 - [ ] Refresh app data after successful upload
 
 ### Phase 6 - Polish [PLANNED]
 
 - [ ] Improve error handling (API errors, malformed statements, upload failures)
+- [ ] Add global dismissible status messaging (success/error/warning/info) with consistent placement across views
 - [ ] Standardize category colors/badges across views
 - [ ] Run end-to-end test with real bank and credit card statements
 
