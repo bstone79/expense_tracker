@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.log
 expense_data.csv
+public/expense_data.bak
