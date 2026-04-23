@@ -2,10 +2,10 @@ Project Task Tracker
 
 ## Snapshot
 
-- Current Phase: Phase 4 - Transactions View
-- Current Task (one only): Set up local Express server with `POST /api/append-transactions`
-- Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks)
-- Next Task: Build Upload view (drag/drop + file picker)
+- Current Phase: Phase 5 - Upload Feature
+- Current Task (one only): Build Upload view (drag/drop + file picker)
+- Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks), Phase 3 complete (7 of 7 tasks), Phase 4 complete (3 of 3 tasks)
+- Next Task: Implement PDF text extraction (`pdfjs-dist`)
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 5 - Upload Feature: Set up local Express server with `POST /api/append-transactions`
+- [ ] Phase 5 - Upload Feature: Build Upload view (drag/drop + file picker)
 
 ## Next
 
-- [ ] Phase 5 - Upload Feature: Build Upload view (drag/drop + file picker)
+- [ ] Phase 5 - Upload Feature: Implement PDF text extraction (`pdfjs-dist`)
 
 ## Backlog by Phase
 
@@ -48,7 +48,7 @@ Project Task Tracker
 - [x] Build Filter Bar component (date pickers, category multi-select, type toggle, reset)
 - [x] Wire filter state into all aggregation calls
 
-### Phase 3 - Dashboard Enhancements [ACTIVE]
+### Phase 3 - Dashboard Enhancements [DONE]
 
 - [x] Replace "Category Count" KPI with "Top Category"
 - [x] Add "Avg. Monthly Spend" KPI
@@ -58,15 +58,15 @@ Project Task Tracker
 - [x] Build credit-card-vs-bank monthly chart
 - [x] Improve drilldown UX (visible close action, category at summary level)
 
-### Phase 4 - Transactions View [PLANNED]
+### Phase 4 - Transactions View [DONE]
 
 - [x] Build sortable, paginated transaction table
 - [x] Add free-text description search
 - [x] Wire table to global filter state
 
-### Phase 5 - Upload Feature [PLANNED]
+### Phase 5 - Upload Feature [ACTIVE]
 
-- [ ] Set up local Express server with `POST /api/append-transactions`
+- [x] Set up local Express server with `POST /api/append-transactions`
 - [ ] Build Upload view (drag/drop + file picker)
 - [ ] Implement PDF text extraction (`pdfjs-dist`)
 - [ ] Implement Gemini parsing + categorization integration
