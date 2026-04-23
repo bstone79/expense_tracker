@@ -5,6 +5,8 @@
   "description": "Expense tracker SPA MVP",
   "scripts": {
     "dev": "vite",
+    "dev:server": "node backend/server.js",
+    "dev:server:local": "node scripts/dev-server-local.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run"
@@ -14,7 +16,9 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "express": "^5.2.1",
     "papaparse": "^5.5.3",
+    "pdfjs-dist": "^5.6.205",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "recharts": "^3.8.1"

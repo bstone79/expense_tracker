@@ -81,7 +81,8 @@ function parseTransaction(row: CsvRow): ParsedRowResult {
 }
 
 export function parseExpenseCsv(csvText: string): ExpenseLoadResult {
-  const parsed = Papa.parse<CsvRow>(csvText, {
+  const normalizedCsvText = csvText.replace(/\r\n/g, "\n");
+  const parsed = Papa.parse<CsvRow>(normalizedCsvText, {
     header: true,
     skipEmptyLines: "greedy",
   });

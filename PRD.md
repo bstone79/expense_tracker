@@ -194,9 +194,11 @@ For local-only use, the CSV path can be served via a simple Express or Vite stat
    7.1 Upload Flow
 
 User navigates to the Upload view
+User selects statement type (Bank or Credit Card)
 User selects or drags-and-drops a statement file (PDF or CSV)
 The app displays a preview of the extracted/parsed transactions before committing
-User reviews the mapped data, confirms, and the rows are appended to the CSV
+User reviews parsed rows and accepts/declines individual rows, with category edits available before confirm
+User confirms accepted rows and the rows are appended to the CSV
 The Dashboard and Transactions views refresh to include the new data
 
 7.2 Supported Statement Formats (MVP)
@@ -205,12 +207,12 @@ Credit Card statement — PDF or CSV export from a major issuer (e.g., Chase, Ci
 Bank statement — PDF or CSV export from a major bank (e.g., Chase, Bank of America)
 
 7.3 Parsing Strategy — Gemini API Integration
-Because statement formats vary significantly between institutions, the application should use the Google Gemini API to intelligently parse uploaded statement content and map it to the standard schema.
+For MVP, the application should use the Gemini API to parse uploaded statement content and map it to the standard schema. The user must explicitly select whether the statement is Bank or Credit Card before parsing.
 Flow:
 
 If the uploaded file is a PDF, extract text client-side using a library such as pdf.js or pdfjs-dist
 If the uploaded file is a CSV, read it as plain text
-Send the extracted text to the Gemini API with a structured prompt instructing it to:
+Send the extracted text and selected statement type to the Gemini API with a structured prompt instructing it to:
 
 Identify transaction rows
 Extract date, description, and amount
@@ -221,13 +223,14 @@ Return results as a JSON array matching the CSV schema
 Display the returned transactions in a preview table before the user confirms
 On confirmation, serialize the transactions back to CSV rows and append to expense_data.csv via a local file write (requires a small local Node/Express backend endpoint)
 
-Prompt Design Requirements:
+Prompt and Output Requirements:
 
-The prompt must include the list of valid Category values
+The prompt must include the user-selected statement type (Bank or Credit Card)
 The prompt must instruct the model to return only valid JSON (no markdown fences)
-The prompt must include the target schema: { Date, Description, Category, Amount, Type }
+The prompt must enforce the target schema: { Date, Description, Category, Amount, Type }
 Date format must be normalized to MM/DD/YYYY in the output
 Amounts must be positive numbers (credits/refunds may be excluded or flagged)
+The preview UI must allow row-level accept/decline and category edits before append
 
 7.4 Duplicate Detection
 Before appending, the app should check for potential duplicates based on matching Date + Description + Amount. If duplicates are found, they should be highlighted in the preview table and the user should have the option to exclude them before confirming.
@@ -262,6 +265,10 @@ CSV path strategy
 Gemini API key handling
 - API key must be stored only in backend environment variables.
 - Frontend must never directly receive or store the Gemini API key.
+
+Statement type selection before parsing
+- User must choose Bank or Credit Card statement type before parsing begins.
+- Selected statement type must be passed to Gemini and reflected in parsing behavior.
 
 PDF extraction failure behavior
 - If uploaded PDF text extraction fails (for example, scanned/image PDFs), show a clear error message and require CSV upload instead.
