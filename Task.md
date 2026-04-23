@@ -3,9 +3,9 @@ Project Task Tracker
 ## Snapshot
 
 - Current Phase: Phase 5 - Upload Feature
-- Current Task (one only): Refresh app data after successful upload
+- Current Task (one only): Improve error handling (API errors, malformed statements, upload failures)
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks), Phase 3 complete (7 of 7 tasks), Phase 4 complete (3 of 3 tasks)
-- Next Task: Improve error handling (API errors, malformed statements, upload failures)
+- Next Task: Add global dismissible status messaging (success/error/warning/info) with consistent placement across views
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 5 - Upload Feature: Refresh app data after successful upload
+- [ ] Phase 6 - Polish: Improve error handling (API errors, malformed statements, upload failures)
 
 ## Next
 
-- [ ] Phase 6 - Polish: Improve error handling (API errors, malformed statements, upload failures)
+- [ ] Phase 6 - Polish: Add global dismissible status messaging (success/error/warning/info) with consistent placement across views
 
 ## Backlog by Phase
 
@@ -72,7 +72,7 @@ Project Task Tracker
 - [x] Implement Gemini parsing + categorization integration with user-selected statement type
 - [x] Build preview table with accept/decline controls, duplicate highlighting, and category editing
 - [x] Wire confirm-and-append flow to backend
-- [ ] Refresh app data after successful upload
+- [x] Refresh app data after successful upload
 
 ### Phase 6 - Polish [PLANNED]
 
