@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "prompt",
+        "matcher": "Shell",
+        "timeout": 90,
+        "failClosed": true,
+        "prompt": "You are a pre-tool security gate for Shell commands.\n\nHook input (tool call context): $ARGUMENTS\n\nGoal:\n- Intercept PR creation commands and enforce security review policy.\n\nDetection rules (only gate when this Shell tool call intends to create a PR):\n- Match commands like `gh pr create`.\n- Match GitHub REST API PR creation calls that target `/repos/{owner}/{repo}/pulls` with HTTP POST.\n- If not a PR creation call, return `{ \"permission\": \"allow\" }`.\n\nFor PR creation calls:\n1) Determine base branch from command text when possible:\n   - `--base <branch>`\n   - `base = \"<branch>\"` or `base='...'\n   - JSON body fields like `\"base\": \"<branch>\"`\n   - default to `main` only if base cannot be extracted.\n2) Assess security risk of changes between base branch and HEAD.\n3) Classify findings: Critical, High, Medium, Low.\n4) Enforce policy:\n   - If any Critical or High findings: return `permission=deny` with concise `user_message` naming top issues.\n   - If only Medium/Low findings: return `permission=ask` with concise `user_message` requiring explicit user approval to proceed.\n   - If no material issues: return `permission=allow`.\n\nOutput constraints:\n- Return only valid JSON for `preToolUse` hook output.\n- Allowed fields: `permission`, `user_message`, `agent_message`, `updated_input`.\n- Keep user-facing messages short and actionable.\n- Be evidence-based and avoid speculative findings."
+      }
+    ]
+  }
+}
