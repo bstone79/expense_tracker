@@ -14,3 +14,7 @@ These rules apply to all coding sessions in this repository.
 10. Keep responses high-level when the user asks for high-level plans.
 11. After each step code commit, immediately update and separately commit `Task.md` before moving to the next step.
 12. If unexpected repo changes appear, stop and ask how to proceed.
+
+# Github Interactions
+
+1. When interacting with Github, please use the github rest api via the token in my environment variables
