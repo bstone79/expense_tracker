@@ -2,10 +2,10 @@ Project Task Tracker
 
 ## Snapshot
 
-- Current Phase: Phase 5 - Upload Feature
-- Current Task (one only): Improve error handling (API errors, malformed statements, upload failures)
+- Current Phase: Phase 6 - Security Hardening
+- Current Task (one only): Lock API down (loopback bind + auth middleware for mutating endpoints)
 - Progress: Phase 1 complete (6 of 6 tasks), Phase 2 complete (3 of 3 tasks), Phase 3 complete (7 of 7 tasks), Phase 4 complete (3 of 3 tasks)
-- Next Task: Add global dismissible status messaging (success/error/warning/info) with consistent placement across views
+- Next Task: Add server-side CSV formula-injection sanitization before append
 - Blockers: None
 
 ## Locked Decisions
@@ -25,11 +25,11 @@ Project Task Tracker
 
 ## In Progress
 
-- [ ] Phase 6 - Polish: Improve error handling (API errors, malformed statements, upload failures)
+- [ ] Phase 6 - Security Hardening: Lock API down (loopback bind + auth middleware for mutating endpoints)
 
 ## Next
 
-- [ ] Phase 6 - Polish: Add global dismissible status messaging (success/error/warning/info) with consistent placement across views
+- [ ] Phase 6 - Security Hardening: Add server-side CSV formula-injection sanitization before append
 
 ## Backlog by Phase
 
@@ -74,7 +74,15 @@ Project Task Tracker
 - [x] Wire confirm-and-append flow to backend
 - [x] Refresh app data after successful upload
 
-### Phase 6 - Polish [PLANNED]
+### Phase 6 - Security Hardening [ACTIVE]
+
+- [ ] Lock API down: bind backend to loopback and add auth middleware for mutating endpoints
+- [ ] Prevent CSV formula injection: sanitize formula-leading characters on string fields before append
+- [ ] Harden parse endpoint errors: return generic client errors and keep detailed upstream text in server-only logs
+- [ ] Add abuse controls on parse endpoint: rate limiting + outbound request timeout
+- [ ] Enforce strict enums on append validation: reject unknown `Category` and `Type` values
+
+### Phase 7 - Polish [PLANNED]
 
 - [ ] Improve error handling (API errors, malformed statements, upload failures)
 - [ ] Add global dismissible status messaging (success/error/warning/info) with consistent placement across views
